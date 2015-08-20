@@ -1,0 +1,17 @@
+base
+methods
+datasets
+utils
+grDevices
+graphics
+stats
+parallel
+BiocGenerics
+Biobase
+limma
+RColorBrewer
+metagenomeSeq
+slam
+maptpx
+tsne
+qtlcharts
