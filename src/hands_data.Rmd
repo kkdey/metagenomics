@@ -131,9 +131,3 @@ lapply(c(3,5,7), function(n) structure_body_metagenome(data,type_bodysite,n));
 
 It seems that for the full data case too, the left hand and right hand separation is not observed, but even the difference between crease and fossa is not clear when the entire data is taken into account, mainly the differences with the other tissues among themselves and with skin dominate the clusters. 
 
-
-
-
-
-
-
