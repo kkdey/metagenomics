@@ -1,0 +1,10 @@
+base
+BiocGenerics
+Biobase
+limma
+RColorBrewer
+metagenomeSeq
+slam
+maptpx
+tsne
+qtlcharts
