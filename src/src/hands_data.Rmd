@@ -1,0 +1,133 @@
+---
+title: "metagenomics case study- HMP"
+author: "Kushal K Dey, Joyce HSiao, Joe Paulson"
+date: "August 19, 2015"
+output: html_document
+---
+
+First load the HMP RData and extracting the counts table and the phenotype/ metadata tables.
+
+```{r data_load, echo=TRUE, eval=TRUE}
+suppressMessages(suppressWarnings(library(metagenomeSeq)))
+suppressMessages(suppressWarnings(library(maptpx)))
+suppressMessages(suppressWarnings(library(tsne)))
+suppressMessages(suppressWarnings(library(qtlcharts)))
+
+#setwd('/Users/kushal/Documents/metagenomics/src')
+load('../data/HMPvs35_nt100_MRexperiment.rdata')
+data <- t(MRcounts(hmp));
+metadata <- pData(hmp);
+otu_data <- featureData(hmp)
+```
+
+Extract the data related to the hands. We first extract those sample indices where the **bodysupersite** label is **Skin** and it seemed they all corresponded to left hand or right hand.
+
+```{r, hands_data, echo=TRUE, eval=TRUE}
+hands_data <- data[which(metadata$HMPbodysupersite=="Skin"),];
+metadata <- metadata[which(metadata$HMPbodysupersite=="Skin"),];
+str(metadata)
+```
+
+Next we extract the **bodysubsite** info which contains the information on the specific parts of the hand (both left and right) that have been studied.
+
+```{r, body_subsite, echo=TRUE, eval=TRUE}
+type_bodysite <- metadata$HMPbodysubsite;
+```
+
+Then, we apply the Topic model clustering on these extrcated samples and we arrange the samples by the part of the hand it comes from.
+
+```{r, topic_model, echo=FALSE, eval=TRUE}
+structure_hands_metagenome <- function(counts_data,type_info,K)
+{
+  #Topic_Clus <- topics(counts_data,K,tol=0.0001);
+  #write.table(Topic_Clus$omega,paste0('../internal_data/hands_data/hands_topics_omega_',K,'.txt'));
+  #write.table(Topic_Clus$theta,paste0('../internal_data/hands_data/hands_topics_theta_',K,'.txt'));
+  docweights <- as.matrix(read.table(paste0('../internal_data/hands_data/hands_topics_omega_',K,'.txt')));
+  
+  type_ordered <- type_info[order(type_info)];
+  docweights_ordered <- docweights[order(type_info),];
+  barplot(t(docweights_ordered),col=2:(K+1),axisnames=F,space=0,border=NA,main=paste("No. of clusters=",K),las=1,ylim=c(0,1),cex.axis=0.3,cex.main=1.4);
+  labels = match(unique(type_ordered), type_ordered);
+  abline(v=labels-1)
+
+  labels_low=labels-1;
+  labels_up=c(labels_low[2:length(labels_low)],dim(docweights_ordered)[1]);
+  mid_point <- labels_low +0.5*(labels_up-labels_low);
+  axis(1,at=mid_point, unique(type_ordered),las=2,cex.axis=0.3);
+}
+
+```
+
+We choose the value of topics from 2 to 10 and obtain the Bayes factor for the models corresponding to these different choices of number of topics and then selecting the one that has the highest bayes factor. We find that $K=6$ gives the highest Bayes Factor and we stick with that. We present next the output for $K=2,4,6$.  
+
+```{r best_topic_structure, echo=TRUE, eval=TRUE}
+lapply(c(2,4,6), function(n) structure_hands_metagenome(hands_data,type_bodysite,n));
+```
+
+It seems that the clustering is mainly between the crease and fossa instead of being between the left hand and the right hand. We do a PC plot to see if this pattern shows up in the PCs. It does seem  that crease and fossa do cluster sort of together. 
+
+```{r pca, echo=TRUE, eval=TRUE, cache=TRUE}
+pr <- prcomp(log(hands_data+0.5)%*%t(log(hands_data+0.5)));
+plot(pr)
+```
+
+The plot of PC1 vs PC2 is as follows
+
+```{r pca_12, echo=TRUE, eval=TRUE}
+suppressWarnings(suppressMessages(iplot(pr$x[,1], pr$x[,2], as.numeric(as.factor(type_bodysite)),type_bodysite)))
+```
+
+The plot of PC1 vs PC3 is as follows
+
+```{r pca_13, echo=TRUE, eval=TRUE}
+suppressWarnings(suppressMessages(iplot(pr$x[,1], pr$x[,3], as.numeric(as.factor(type_bodysite)),type_bodysite)))
+```
+
+
+Next, we pick the admixture/ Structure proportions from the above model fit for $K=6$ and then look at the t-SNE plot of these proportions.
+
+```{r tsne_omega, echo=FALSE, eval=TRUE}
+K=8
+docweights <- as.matrix(read.table(paste0('../internal_data/hands_data/hands_topics_omega_',K,'.txt')));
+#tsne_samples <- tsne(docweights,2);
+#write.table(tsne_samples,paste0('../internal_data/hands_data/tsne_samples_',K,'.txt'));
+tsne_samples <- as.matrix(read.table(paste0('../internal_data/hands_data/tsne_samples_',K,'.txt')));
+options(warn=-1)
+suppressWarnings(suppressMessages(iplot(tsne_samples[,1],tsne_samples[,2], as.numeric(as.factor(type_bodysite)),type_bodysite)))
+```
+
+The t-SNE plot does not seem to indicate the clusters that effectively, which we observed in Structure plot. We now consider the PCA plot to check if it shows any clustering between the fossa/crease or left hand/right hand. 
+
+## Clustering of the full data 
+
+We now consider the clustering of all the tissue samples together, not just Skin or crease/fossa. We check if the samples coming from other tissues lead to distinct clusters or not. 
+
+```{r cluster_full_data, echo=FALSE, eval=TRUE}
+full_data <- data;
+metadata <- pData(hmp);
+type_bodysite <- metadata$HMPbodysubsite;
+structure_body_metagenome <- function(counts_data,type_info,K)
+{
+  #Topic_Clus <- topics(counts_data,K,tol=0.0001);
+  #write.table(Topic_Clus$omega,paste0('../internal_data/body_data/topics_omega_',K,'.txt'));
+ # write.table(Topic_Clus$theta,paste0('../internal_data/body_data/topics_theta_',K,'.txt'));
+  docweights <- as.matrix(read.table(paste0('../internal_data/body_data/topics_omega_',K,'.txt')));
+  
+  type_ordered <- type_info[order(type_info)];
+  docweights_ordered <- docweights[order(type_info),];
+  barplot(t(docweights_ordered),col=2:(K+1),axisnames=F,space=0,border=NA,main=paste("No. of clusters=",K),las=1,ylim=c(0,1),cex.axis=0.3,cex.main=1.4);
+  labels = match(unique(type_ordered), type_ordered);
+  abline(v=labels-1)
+
+  labels_low=labels-1;
+  labels_up=c(labels_low[2:length(labels_low)],dim(docweights_ordered)[1]);
+  mid_point <- labels_low +0.5*(labels_up-labels_low);
+  axis(1,at=mid_point, unique(type_ordered),las=2,cex.axis=0.3);
+}
+
+lapply(c(3,5,7), function(n) structure_body_metagenome(data,type_bodysite,n));
+
+```
+
+It seems that for the full data case too, the left hand and right hand separation is not observed, but even the difference between crease and fossa is not clear when the entire data is taken into account, mainly the differences with the other tissues among themselves and with skin dominate the clusters. 
+
