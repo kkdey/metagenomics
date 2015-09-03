@@ -1,15 +1,17 @@
 ---
 layout: page
 title: MetagenomeadmixR
-tagline: Applying admixture to Metagenomic counts data
 description: Application of admixture mixed model approach to metagenomic counts data
 ---
 
-We apply the topic model/ admixture approach to the metagenomic data on HMP V3-5 region data provided by Joe Paulson. 
-<br> [Admixture plot crease/fossa + whole data](project/hands_data.html)
-<br> [Exploring only fossa/crease, PCA, q-value, individual Structure](project/explore_fossa_crease.html)
-<br> [gene expression patterns fossa/crease](project/fossa_crease_qtlcharts.html)
-<br>
+We apply the topic model/ admixture approach to the metagenomic data on HMP V3-5 region data provided by Joe Paulson.
+
+## Exploration of HMP V3-5 data
+
+* [Admixture plot crease/fossa + whole data](project/hands_data.html)
+* [Exploring only fossa/crease, PCA, q-value, individual Structure](project/explore_fossa_crease.html)
+* [gene expression patterns fossa/crease](project/fossa_crease_qtlcharts.html)
+
 If anything here is confusing (or _wrong), or if I've missed
 important details, please
 [submit an issue](https://github.com/kkdey/metagenomics/issues) or fork [the GitHub repository for this website](http://github.com/kkdey/metagenomics),
