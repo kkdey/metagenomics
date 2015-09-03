@@ -6,7 +6,7 @@ description: Application of admixture mixed model approach to metagenomic counts
 
 We apply the topic model/ admixture approach to the metagenomic data on HMP V3-5 region data provided by Joe Paulson.
 
-## Exploration of HMP V3-5 data
+### Exploration of HMP V3-5 data
 
 * [Admixture plot crease/fossa + whole data](project/hands_data.html)
 * [Exploring only fossa/crease, PCA, q-value, individual Structure](project/explore_fossa_crease.html)
