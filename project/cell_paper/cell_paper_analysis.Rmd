@@ -1,0 +1,109 @@
+---
+title: "cell paper analysis"
+author: "Kushal K Dey, Joyce Hsiao, Joe Paulson"
+date: "September 8, 2015"
+output: html_document
+---
+
+```{r packages, echo=TRUE, eval=FALSE}
+library(fossil) # for Chao1
+library(vegan)     # for Simpson
+library(metagenomeSeq) # data structured
+library(breakaway) # for breakaway
+#install_github('kkdey/CountClust')
+library(CountClust) # for Structure
+library(maptpx) # for topic model fit
+```
+
+Loading the data 
+
+```{r data_load, echo=TRUE, eval=FALSE}
+load("cellPaperRaw.rdata")
+pheno_data <- pData(cellPaper); # phenotype data (there are 62 columns in this)
+
+
+age = pData(cellPaper)$Age_at_Collection  
+status = pData(cellPaper)$Case_Control
+gender =pData(cellPaper)$gender;
+# Extracted phenotypes of primary interest, age, status (Case/Control) and gender. 
+```
+
+Loading the counts data, richness and diversity checks 
+
+```{r counts_preprocess, echo=TRUE, eval=FALSE}
+
+counts = MRcounts(cellPaper)
+h = diversity(t(counts))  ## determining the species diversity
+
+
+## determining the species richness (Chao 1984,1987)
+
+c1= sapply(1:ncol(cellPaper),function(i){
+  chao1(counts[,i])
+})
+
+names(c1) = names(h) = names(status) = names(age) = colnames(cellPaper)=names(gender)
+
+
+```
+
+Preprocessing to check for NA values and filter those OTUs which have $99\%$ zero entries.
+
+```{r data_preprocess, echo=TRUE, eval=FALSE}
+counts <- t(counts);
+
+## handling NA if any in the data
+counts_preprocess <- handleNA(counts)$data;
+
+## Removing the sparse OTUs
+counts_filtered <- RemoveSparseFeatures(counts_preprocess,0.99)$data; 
+
+## the OTUs that are very sparse 
+otu_removed <- RemoveSparseFeatures(counts_preprocess,0.99)$sparse_features;
+
+## Performing the Structure plots for 3 choices (k=2,3,4) with Age, gender and status as metadata 
+
+```
+
+Now we perform Structure with number of topics varying from 2 to 6 and save the Structure plots to file.
+
+```{r structure, echo=TRUE, eval=FALSE}
+
+nclus_vec <- 5:6;
+
+if(!dir.exists("Structure")) dir.create("Structure")
+if(!dir.exists("Structure/batch_uncorrected")) dir.create("Structure/batch_uncorrected")
+
+bayesfac <- array(0,length(nclus_vec));
+
+samp_metadata <- cbind.data.frame(age,status,gender);
+colnames(samp_metadata) = c("Age","Status","Gender");
+
+for(num in 1:length(nclus_vec))
+{
+  if(!dir.exists(paste0("Structure/batch_uncorrected/clus_",nclus_vec[num]))) dir.create(paste0("Structure/batch_uncorrected/clus_",nclus_vec[num]))
+  obj <- StructureObj(counts_filtered,nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0("Structure/batch_uncorrected/clus_",nclus_vec[num]),partition=c('FALSE','TRUE','TRUE'));
+}
+
+
+```
+
+## Number of topics : 2
+
+<img src='Structure/batch_uncorrected/clus_2/struct_clus_2_Age.png' style="width:304px;height:228px;">
+<img src='Structure/batch_uncorrected/clus_2/struct_clus_2_Gender.png' style="width:304px;height:228px;">
+<img src='Structure/batch_uncorrected/clus_2/struct_clus_2_Status.png' style="width:304px;height:228px;">
+
+## Number of topics : 4
+
+<img src='Structure/batch_uncorrected/clus_4/struct_clus_4_Age.png' style="width:304px;height:228px;">
+<img src='Structure/batch_uncorrected/clus_4/struct_clus_4_Gender.png' style="width:304px;height:228px;">
+<img src='Structure/batch_uncorrected/clus_4/struct_clus_4_Status.png' style="width:304px;height:228px;">
+
+
+## Number of topics : 6
+
+<img src='./Structure/batch_uncorrected/clus_6/struct_clus_6_Age.png' style="width:304px;height:228px;">
+<img src='./Structure/batch_uncorrected/clus_6/struct_clus_6_Gender.png' style="width:304px;height:228px;">
+<img src='./Structure/batch_uncorrected/clus_6/struct_clus_6_Status.png' style="width:304px;height:228px;">
+

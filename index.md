@@ -12,6 +12,10 @@ We apply the topic model/ admixture approach to the metagenomic data on HMP V3-5
 * [Exploring only fossa/crease, PCA, q-value, individual Structure](project/explore_fossa_crease.html)
 * [gene expression patterns fossa/crease](project/fossa_crease_qtlcharts.html)
 
+### Analysis of the Cell Paper Data
+* [Structure analysis for age, gender, Case/Control status] (project/cell_paper/cell_paper_analysis.html)
+
+
 If anything here is confusing (or _wrong), or if I've missed
 important details, please
 [submit an issue](https://github.com/kkdey/metagenomics/issues) or fork [the GitHub repository for this website](http://github.com/kkdey/metagenomics),
