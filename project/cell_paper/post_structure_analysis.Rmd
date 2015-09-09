@@ -27,7 +27,14 @@ age = pData(cellPaper)$Age_at_Collection
 status = pData(cellPaper)$Case_Control
 gender =pData(cellPaper)$Gender;
 
+ord <- order(age,decreasing=TRUE);
+
+age <- age[ord];
+status <- status[ord]
+gender <- gender[ord];
+
 omega <- as.matrix(read.table('Structure/batch_uncorrected/clus_2/omega_mat.txt'));
+omega <- omega[ord,];
 par(mfrow=c(1,1))
 plot(omega[,1]~age,pch=21,lwd=2, bty="l",ylab="admix proportion of red cluster",xlab="Age at collection")
 
@@ -42,6 +49,7 @@ index_red <- which(omega[,1] > 0.9);
 index_green <- which(omega[,1] < 0.1)
 
 counts = MRcounts(cellPaper);
+counts <- counts[,ord];
 counts <- t(counts);
 counts_preprocess <- handleNA(counts)$data;
 
@@ -146,10 +154,6 @@ if(!dir.exists("Structure")) dir.create("Structure")
 if(!dir.exists("Structure/imp_features")) dir.create("Structure/imp_features")
 
 bayesfac <- array(0,length(nclus_vec));
-
-age = pData(cellPaper)$Age_at_Collection  
-status = pData(cellPaper)$Case_Control
-gender =pData(cellPaper)$Gender;
 
 samp_metadata <- cbind.data.frame(age,status,gender);
 colnames(samp_metadata) = c("Age","Status","Gender");
