@@ -5,4 +5,8 @@ project/.DS_Store
 project/cell_paper/.Rhistory
 project/cell_paper/post_Structure/
 .DS_Store
+<<<<<<< HEAD
 .Rproj.user
+=======
+data/
+>>>>>>> 6a6e1fa35db88cc605c3c3704373f4339ebc9911
