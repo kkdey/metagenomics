@@ -1,6 +1,6 @@
 ---
 layout: page
-title: MetagenomeadmixR
+title: MetaClust
 description: Application of admixture mixed model approach to metagenomic counts data
 ---
 
