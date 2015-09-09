@@ -1,0 +1,242 @@
+---
+title: "Post Structure analysis"
+author: "Kushal K Dey, Joyce Hsiao, Joe Paulson"
+date: "September 9, 2015"
+output: html_document
+---
+
+In the Structure analysis of the cell Paper data, we found that age was the main driving factor behind the clustering. For $k=2$, we had lower age groups clustering to a particular cluster (the red cluster) and the higher age groups clustering to another cluster (the green cluster). 
+
+First we detect the cut off age group when the shift happens from one cluster to another.
+
+```{r, echo=TRUE, eval=TRUE}
+
+setwd('/Users/kushal/Documents/metagenomics/project/cell_paper/')
+suppressMessages(suppressWarnings(library(maptpx)))
+suppressMessages(suppressWarnings(library(CountClust)))
+suppressMessages(suppressWarnings(library(metagenomeSeq)))
+suppressMessages(suppressWarnings(library(ashr)))
+suppressMessages(suppressWarnings(library(qvalue)))
+
+
+load("cellPaperRaw.rdata")
+pheno_data <- pData(cellPaper); # phenotype data (there are 62 columns in this)
+
+
+age = pData(cellPaper)$Age_at_Collection  
+status = pData(cellPaper)$Case_Control
+gender =pData(cellPaper)$Gender;
+
+omega <- as.matrix(read.table('Structure/batch_uncorrected/clus_2/omega_mat.txt'));
+par(mfrow=c(1,1))
+plot(omega[,1]~age,pch=21,lwd=2, bty="l",ylab="admix proportion of red cluster",xlab="Age at collection")
+
+```
+
+It seems that the transition takes place at around the age 400. 
+
+Now we separate out the samples which fall mainly in the red cluster or green cluster. We assign a sample to the red cluster if the admixture proportion corresponding to that cluster is $> 0.9$. Similarly we assign samples to the green cluster. 
+
+```{r red_green_cluster_assign, echo=TRUE, eval=TRUE}
+index_red <- which(omega[,1] > 0.9);
+index_green <- which(omega[,1] < 0.1)
+
+counts = MRcounts(cellPaper);
+counts <- t(counts);
+counts_preprocess <- handleNA(counts)$data;
+
+## Removing the sparse OTUs
+counts_filtered <- RemoveSparseFeatures(counts_preprocess,0.99)$data; 
+
+
+red_cluster_samples <- counts_filtered[index_red,];
+green_cluster_samples <- counts_filtered[index_green,];
+
+```
+
+We separately perform Structure with $K=2$ for each of the red cluster and the green cluster samples and try to see if they cluster by the Case Control status or not. 
+
+First we perform Structure on just the samples assigned to the red clusters.
+
+```{r structure_red}
+
+nclus_vec <- 2;
+bayesfac <- array(0,length(nclus_vec));
+status_red <- status[index_red];
+samp_metadata <- cbind.data.frame(status_red);
+colnames(samp_metadata) = c("Status");
+
+for(num in 1:length(nclus_vec))
+{
+  obj <- StructureObj(red_cluster_samples,nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0('post_Structure/red_cluster'), partition=c('TRUE'),
+                      control=list(lwd=3,struct.width=600, struct.height=400));
+}
+
+
+
+```
+
+<img src='post_Structure/green_cluster/struct_clus_2_Status.png' style="width:800;height:400;" align="middle">
+
+Next we perform Structure on just the samples assigned to the green cluster.
+
+```{r structure_green}
+
+nclus_vec <- 2;
+bayesfac <- array(0,length(nclus_vec));
+status_green <- status[index_green];
+samp_metadata <- cbind.data.frame(status_green);
+colnames(samp_metadata) = c("Status");
+
+for(num in 1:length(nclus_vec))
+{
+  obj <- StructureObj(green_cluster_samples,nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0('post_Structure/green_cluster'), partition=c('TRUE'),
+                      control=list(lwd=3,struct.width=600, struct.height=400));
+}
+
+```
+
+<img src='post_Structure/green_cluster/struct_clus_2_Status.png' style="width:800;height:400;" align="middle">
+
+From the above plots, it does not seem there is a strong Case/Control effect even when we constrain the age effect. We now perform a differential analysis to see if there are OTUs which have Case/Control effects.
+
+```{r imp_otus, echo=TRUE, eval=TRUE}
+
+betaval_otu <- array(0,dim(counts_filtered)[2]);
+sd_betaval_otu <- array(0,dim(counts_filtered)[2]);
+pval_otu <- array(0,dim(counts_filtered)[2]);
+
+for(g in 1:dim(counts_filtered)[2])
+{
+  out <- glm(counts_filtered[,g] ~ age + as.factor(status), family='poisson');
+  betaval_otu[g] <- summary(out)$coefficients[3,1];
+  sd_betaval_otu[g] <- summary(out)$coefficients[3,2]
+  pval_otu[g] <- summary(out)$coefficients[3,4]
+}
+
+```
+
+Applying ash to figure out which features have non null dependencies.
+
+```{r echo=TRUE, eval=TRUE}
+effect_size <- ash(betaval_otu, sd_betaval_otu, mixcompdist = "normal")$PosteriorMean;
+plot(effect_size,pch=21,lwd=2, bty="l",ylab="shrunk effect sizes (ash)",xlab="Features")
+
+```
+
+We obtain the q-values from the p-values we derived.
+
+```{r q_val, echo=TRUE, eval=TRUE}
+qval_otu <- qvalue(pval_otu)$qvalues;
+pval_otu <- pval_otu;
+plot(qval_otu ~ pval_otu,pch=21,lwd=2, bty="l",ylim=c(0,1),ylab="q values",xlab=" p values")
+
+```
+
+We obtain those features for which the q-value is less than $0.05$.
+
+```{r feature_extract, echo=TRUE, eval=TRUE}
+feature_indices <- which(qval_otu <0.0001);
+
+counts_feature_status <- counts_filtered[, feature_indices];
+
+nclus_vec <- 2:4;
+
+if(!dir.exists("Structure")) dir.create("Structure")
+if(!dir.exists("Structure/imp_features")) dir.create("Structure/imp_features")
+
+bayesfac <- array(0,length(nclus_vec));
+
+age = pData(cellPaper)$Age_at_Collection  
+status = pData(cellPaper)$Case_Control
+gender =pData(cellPaper)$Gender;
+
+samp_metadata <- cbind.data.frame(age,status,gender);
+colnames(samp_metadata) = c("Age","Status","Gender");
+
+for(num in 1:length(nclus_vec))
+{
+  if(!dir.exists(paste0("Structure/imp_features/clus_",nclus_vec[num]))) dir.create(paste0("Structure/imp_features/clus_",nclus_vec[num]))
+  obj <- StructureObj(counts_feature_status,nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0("Structure/imp_features/clus_",nclus_vec[num]),
+                      partition=c('FALSE','TRUE','TRUE'),
+                      control = list(lwd=3,struct.width=600, struct.height=400));
+}
+
+
+
+```
+
+<img src='Structure/imp_features/clus_2/struct_clus_2_Age.png' style="width:800;height:400;" align="middle">
+
+<img src='Structure/imp_features/clus_3/struct_clus_3_Age.png' style="width:800;height:400;" align="middle">
+
+<img src='Structure/imp_features/clus_2/struct_clus_2_Status.png' style="width:800;height:400;" align="middle">
+
+<img src='Structure/imp_features/clus_3/struct_clus_3_Status.png' style="width:800;height:400;" align="middle">
+
+It seems that even when we constrain the set of features to include only those that show variation due to Case/Control status, even then we get the age effect to be the most prominent effect. Again for this new dataset, we look at which age there is a shift in cluster patterns.
+
+```{r omega_vs_age_2, echo=TRUE, eval=TRUE}
+omega <- as.matrix(read.table('Structure/imp_features/clus_2/omega_mat.txt'));
+par(mfrow=c(1,1))
+plot(omega[,1]~age,pch=21,lwd=2, bty="l",ylab="admix proportion of red cluster",xlab="Age at collection")
+
+
+```
+
+Again it does seem that the shift occurs around age 400, as in the previous case. Now we group the observations by red and green clusters as above and carry out Case/Control analysis.
+
+```{r red_cluster_imp_features, echo=TRUE, eval=TRUE}
+
+index_red <- which(omega[,1] > 0.9);
+index_green <- which(omega[,1] < 0.1)
+
+red_cluster_samples <- counts_feature_status[index_red,];
+green_cluster_samples <- counts_feature_status[index_green,];
+
+
+```
+
+Now we apply the Structure model on the red group and the green group respectively. We shall start with red group.
+
+```{r structure_red_features}
+
+nclus_vec <- 2;
+bayesfac <- array(0,length(nclus_vec));
+status_red <- status[index_red];
+samp_metadata <- cbind.data.frame(status_red);
+colnames(samp_metadata) = c("Status");
+
+for(num in 1:length(nclus_vec))
+{
+  obj <- StructureObj(red_cluster_samples,nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0('post_Structure/red_cluster/imp_features'), partition=c('TRUE'),
+                      control=list(lwd=3,struct.width=600, struct.height=400));
+}
+
+
+
+```
+
+<img src='post_Structure/red_cluster/imp_features/struct_clus_2_Status.png' style="width:800;height:400;" align="middle">
+
+Now we perform similar analysis for the green cluster.
+
+```{r structure_green_features}
+
+nclus_vec <- 2;
+bayesfac <- array(0,length(nclus_vec));
+status_green <- status[index_green];
+samp_metadata <- cbind.data.frame(status_green);
+colnames(samp_metadata) = c("Status");
+
+for(num in 1:length(nclus_vec))
+{
+  obj <- StructureObj(green_cluster_samples,nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0('post_Structure/green_cluster/imp_features'), partition=c('TRUE'),
+                      control=list(lwd=3,struct.width=600, struct.height=400));
+}
+
+
+
+```
+
+<img src='post_Structure/green_cluster/imp_features/struct_clus_2_Status.png' style="width:800;height:400;" align="middle">

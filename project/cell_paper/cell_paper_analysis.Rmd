@@ -107,3 +107,4 @@ for(num in 1:length(nclus_vec))
 <img src='./Structure/batch_uncorrected/clus_6/struct_clus_6_Gender.png' style="width:304px;height:228px;">
 <img src='./Structure/batch_uncorrected/clus_6/struct_clus_6_Status.png' style="width:304px;height:228px;">
 
+
