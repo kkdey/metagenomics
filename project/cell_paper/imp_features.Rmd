@@ -1,0 +1,215 @@
+---
+title: "Properties of OTUs with Case/Control Variation"
+author: "Kushal K Dey, Joyce Hsiao, Joe Paulson"
+date: "September 9, 2015"
+output: html_document
+---
+
+```{r, echo=TRUE, eval=TRUE}
+
+setwd('/Users/kushal/Documents/metagenomics/project/cell_paper/')
+suppressMessages(suppressWarnings(library(maptpx)))
+suppressMessages(suppressWarnings(library(CountClust)))
+suppressMessages(suppressWarnings(library(metagenomeSeq)))
+suppressMessages(suppressWarnings(library(ashr)))
+suppressMessages(suppressWarnings(library(qvalue)))
+suppressMessages(suppressWarnings(library(limma)))
+
+
+load("cellPaperRaw.rdata")
+ord = order(pData(cellPaper)$Age_at_Collection,decreasing=TRUE)
+cellPaper = cellPaper[,ord]
+
+pheno_data <- pData(cellPaper); # phenotype data (there are 62 columns in this)
+
+age = pData(cellPaper)$Age_at_Collection  
+status = pData(cellPaper)$Case_Control
+gender =pData(cellPaper)$Gender;
+
+counts = MRcounts(cellPaper);
+counts <- t(counts);
+counts_preprocess <- handleNA(counts)$data;
+
+## Removing the sparse OTUs
+counts_filtered <- RemoveSparseFeatures(counts_preprocess,0.99)$data; 
+
+betaval_otu <- array(0,dim(counts_filtered)[2]);
+sd_betaval_otu <- array(0,dim(counts_filtered)[2]);
+pval_otu <- array(0,dim(counts_filtered)[2]);
+
+for(g in 1:dim(counts_filtered)[2])
+{
+  out <- glm(counts_filtered[,g] ~ age + as.factor(status), family='poisson');
+  betaval_otu[g] <- summary(out)$coefficients[3,1];
+  sd_betaval_otu[g] <- summary(out)$coefficients[3,2]
+  pval_otu[g] <- summary(out)$coefficients[3,4]
+}
+
+qval_otu <- qvalue(pval_otu)$qvalues;
+imp_features <- which(qval_otu < 0.0001);
+
+```
+
+We choose the important features which vary a lot across the case-control status. 
+
+```{r echo=TRUE, eval=TRUE}
+
+counts_features <- counts_filtered[,imp_features];
+
+nclus_vec <- 2:4;
+
+if(!dir.exists("Structure")) dir.create("Structure")
+if(!dir.exists("Structure/imp_features")) dir.create("Structure/imp_features")
+
+bayesfac <- array(0,length(nclus_vec));
+
+samp_metadata <- cbind.data.frame(age,status,gender);
+colnames(samp_metadata) = c("Age","Status","Gender");
+
+for(num in 1:length(nclus_vec))
+{
+  if(!dir.exists(paste0("Structure/imp_features/clus_",nclus_vec[num]))) dir.create(paste0("Structure/imp_features/clus_",nclus_vec[num]))
+  obj <- StructureObj(counts_features,nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0("Structure/imp_features/clus_",nclus_vec[num]),
+                      partition=c('FALSE','TRUE','TRUE'),
+                      control = list(lwd=3,struct.width=600, struct.height=400));
+}
+
+```
+
+<img src='Structure/imp_features/clus_2/struct_clus_2_Age.png' style="width:800;height:400;" align="middle">
+
+<img src='Structure/imp_features/clus_3/struct_clus_3_Age.png' style="width:800;height:400;" align="middle">
+
+<img src='Structure/imp_features/clus_2/struct_clus_2_Status.png' style="width:800;height:400;" align="middle">
+
+<img src='Structure/imp_features/clus_3/struct_clus_3_Status.png' style="width:800;height:400;" align="middle">
+
+
+We fix the red cluster and the green cluster.
+
+```{r echo=TRUE, eval=TRUE}
+omega <- as.matrix(read.table('Structure/imp_features/clus_2/omega_mat.txt'));
+par(mfrow=c(1,1))
+plot(omega[,1]~age,pch=21,lwd=2, bty="l",ylab="admix proportion of red cluster",xlab="Age at collection")
+
+index_red <- which(omega[,1] > 0.9);
+index_green <- which(omega[,1] < 0.1)
+
+red_cluster_samples <- counts_features[index_red,];
+green_cluster_samples <- counts_features[index_green,];
+
+
+nclus_vec <- 2;
+bayesfac <- array(0,length(nclus_vec));
+status_red <- status[index_red];
+samp_metadata <- cbind.data.frame(status_red);
+colnames(samp_metadata) = c("Status");
+
+for(num in 1:length(nclus_vec))
+{
+  obj <- StructureObj(red_cluster_samples,nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0('post_Structure/red_cluster/imp_features'), partition=c('TRUE'),
+                      control=list(lwd=3,struct.width=600, struct.height=400));
+}
+
+
+```
+
+Similarly, the Structure plot for the green cluster
+
+```{r echo=TRUE, eval=TRUE}
+
+nclus_vec <- 2;
+bayesfac <- array(0,length(nclus_vec));
+status_green <- status[index_green];
+samp_metadata <- cbind.data.frame(status_green);
+colnames(samp_metadata) = c("Status");
+
+for(num in 1:length(nclus_vec))
+{
+  obj <- StructureObj(green_cluster_samples,nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0('post_Structure/green_cluster/imp_features'), partition=c('TRUE'),
+                      control=list(lwd=3,struct.width=600, struct.height=400));
+}
+
+
+```
+
+Investigating the red cluster and the significantly differentially abundant OTUs between the Case and Control status for the red cluster.
+
+```{r echo=TRUE, eval=TRUE}
+
+pval_otu_red <- array(0,dim(red_cluster_samples)[2]);
+
+for(g in 1:dim(red_cluster_samples)[2])
+{
+  suppressWarnings(out <- glm(red_cluster_samples[,g] ~ as.factor(status_red),family='poisson'));
+  if(summary(out)$coefficients[2,1] > 1e-10){
+  pval_otu_red[g] <- summary(out)$coefficients[2,4]
+  }else{
+  pval_otu_red[g]<- 1
+  }
+}
+
+plot(pval_otu_red,pch=21,lwd=2, bty="l",ylab="admix proportion of red cluster",xlab="Age at collection")
+
+
+```
+
+Similarly for the green cluster
+
+```{r echo=TRUE, eval=TRUE}
+
+pval_otu_green <- array(0,dim(green_cluster_samples)[2]);
+
+for(g in 1:dim(green_cluster_samples)[2])
+{
+  suppressWarnings(out <- glm(green_cluster_samples[,g] ~ as.factor(status_green),family='poisson'));
+  if(summary(out)$coefficients[2,1] > 1e-10){
+  pval_otu_green[g] <- summary(out)$coefficients[2,4]
+  }else{
+  pval_otu_green[g]<- 1
+  }
+}
+
+plot(pval_otu_green,pch=21,lwd=2, bty="l",ylab="admix proportion of red cluster",xlab="Age at collection")
+
+
+```
+
+We filter out features with low p-values and apply Structure on further constrained data
+
+```{r echo=TRUE, eval=TRUE}
+
+red_second_index <- which(pval_otu_red < 0.001);
+red_cluster_samples_filtered <- red_cluster_samples[,red_second_index];
+samp_metadata <- cbind.data.frame(status_red);
+colnames(samp_metadata) = c("Status");
+nclus_vec <- 2
+
+for(num in 1:length(nclus_vec))
+{
+  obj <- StructureObj(red_cluster_samples_filtered, nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0('post_Structure/red_cluster/imp_features_2'), partition=c('TRUE'),
+                      control=list(lwd=3,struct.width=600, struct.height=400));
+}
+
+```
+
+<img src='post_Structure/red_cluster/imp_features_2/struct_clus_2_Status.png' style="width:800;height:400;" align="middle">
+
+```{r echo=TRUE, eval=TRUE}
+
+green_second_index <- which(pval_otu_green < 0.001);
+green_cluster_samples_filtered <- green_cluster_samples[,green_second_index];
+samp_metadata <- cbind.data.frame(status_green);
+colnames(samp_metadata) = c("Status");
+nclus_vec <- 2
+
+for(num in 1:length(nclus_vec))
+{
+  obj <- StructureObj(green_cluster_samples_filtered, nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0('post_Structure/green_cluster/imp_features_2'), partition=c('TRUE'),
+                      control=list(lwd=3,struct.width=600, struct.height=400));
+}
+
+```
+
+<img src='post_Structure/green_cluster/imp_features_2/struct_clus_2_Status.png' style="width:800;height:400;" align="middle">
+
