@@ -17,7 +17,7 @@ suppressMessages(suppressWarnings(library(limma)))
 
 
 load("cellPaperRaw.rdata")
-ord = order(pData(cellPaper)$Age_at_Collection,decreasing=TRUE)
+ord = order(pData(cellPaper)$Age_at_Collection,decreasing=FALSE)
 cellPaper = cellPaper[,ord]
 
 pheno_data <- pData(cellPaper); # phenotype data (there are 62 columns in this)
