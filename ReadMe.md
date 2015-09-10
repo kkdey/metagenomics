@@ -2,7 +2,7 @@
 
 Application of admixture model on the metagenomic data, where we try to cluster the samples or sites based onthe OTU abundance patterns. This work is in collaboration with Joyce HSiao and Joe Paulson. Please contact kkdey@uchicago.edu for further details. 
 
-View our analysis so far  [here](https://github.com/CJHsiaoLab/metagenomics).
+View our analysis so far  [here](http://cjhsiaolab.github.io/metagenomics).
 
 ---
 <br/>
