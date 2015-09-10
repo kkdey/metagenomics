@@ -4,7 +4,7 @@ title: About us
 description: 
 ---
 
-Kushal K Dey is a graduate student in Statistics at the University of Chicago.
+Kushal Dey is a graduate student in Statistics at the University of Chicago.
 
 Joyce Hsiao is a postdoctoral fellow in the Department of Human Genetics at the University of Chicago.
 
