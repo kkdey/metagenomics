@@ -1,0 +1,61 @@
+---
+title: "Age groups as Batch effects"
+author: "Kushal K Dey, Joyce Hsiao, Joe Paulson"
+date: "September 10, 2015"
+output: html_document
+---
+
+In this script, we shall take age as a factor with red and green subgroups denoting the two age groups and along with it, Case/Control status. Here we take Age as a batch effect and Cae/Control as the factor of interest.
+
+```{r, echo=TRUE, eval=TRUE}
+setwd('/Users/kushal/Documents/metagenomics/project/cell_paper/')
+suppressMessages(suppressWarnings(library(maptpx)))
+suppressMessages(suppressWarnings(library(CountClust)))
+suppressMessages(suppressWarnings(library(metagenomeSeq)))
+suppressMessages(suppressWarnings(library(ashr)))
+suppressMessages(suppressWarnings(library(qvalue)))
+suppressMessages(suppressWarnings(library(limma)))
+
+
+load("cellPaperRaw.rdata")
+ord = order(pData(cellPaper)$Age_at_Collection,decreasing=FALSE)
+cellPaper = cellPaper[,ord]
+
+pheno_data <- pData(cellPaper); # phenotype data (there are 62 columns in this)
+
+age = pData(cellPaper)$Age_at_Collection  
+status = pData(cellPaper)$Case_Control
+gender =pData(cellPaper)$Gender;
+
+counts = MRcounts(cellPaper);
+counts <- t(counts);
+counts_preprocess <- handleNA(counts)$data;
+
+## Removing the sparse OTUs
+counts_filtered <- RemoveSparseFeatures(counts_preprocess,0.99)$data; 
+
+omega <- as.matrix(read.table('Structure/batch_uncorrected/clus_2/omega_mat.txt'));
+omega <- omega[ord,];
+par(mfrow=c(1,1))
+plot(omega[,1]~age,pch=21,lwd=2, bty="l",ylab="admix proportion of red cluster",xlab="Age at collection")
+
+index_red <- which(omega[,1] > 0.9);
+index_green <- which(omega[,1] < 0.1)
+
+red_cluster_samples <- counts_filtered[index_red,];
+green_cluster_samples <- counts_filtered[index_green,];
+
+counts_new <- rbind(red_cluster_samples, green_cluster_samples);
+status_new <- matrix(c(as.character(status[index_red]), as.character(status[index_green])),ncol=1);
+age_grp_new <- c(rep(1,length(index_red)),rep(2,length(index_green)));
+
+```
+
+Now we first obtain batch corrected counts taking the age as the batch factor.
+
+```{r echo=TRUE, eval=TRUE}
+
+data <- counts_new;
+
+```
+
