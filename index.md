@@ -4,7 +4,6 @@ title: MetaClust
 description: Application of admixture mixed model approach to metagenomic counts data
 ---
 
-We apply the topic model/ admixture approach to the metagenomic data on HMP V3-5 region data provided by Joe Paulson.
 
 ### Exploration of HMP V3-5 data
 
