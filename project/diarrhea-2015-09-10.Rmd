@@ -1,6 +1,6 @@
 ---
 title: "Diarrhea"
-author: "Kushal K Dey, Joyce Hsiao, Joe Paulson"
+author: "Joyce Hsiao,, Kushal K Dey, and Joe Paulson"
 date: "September 10, 2015"
 output: html_document
 ---
@@ -15,7 +15,7 @@ library(maptpx) # for topic model fit
 if (!require(CountClust, quietly = TRUE)) {
   library(devtools)
   install_github("kkdey/CountClust")
-  library(Humanzee)
+  library(CountClust)
 }
 ```
 
@@ -23,93 +23,150 @@ if (!require(CountClust, quietly = TRUE)) {
 Loading the data 
 
 ```{r data_load, echo=TRUE, eval=FALSE}
-load("cellPaperRaw.rdata")
-pheno_data <- pData(cellPaper); # phenotype data (there are 62 columns in this)
-
-
-age = pData(cellPaper)$Age_at_Collection  
-status = pData(cellPaper)$Case_Control
-gender =pData(cellPaper)$gender;
-# Extracted phenotypes of primary interest, age, status (Case/Control) and gender. 
+load("./data/msd.rdata")
+head(pData(msd))
 ```
 
-Loading the counts data, richness and diversity checks 
+Data collected from `r length(unique(pData(msd)$Country))` different countries and
+`r length(unique(pData(msd)$center))` data collection subsites (centers).
 
-```{r counts_preprocess, echo=TRUE, eval=FALSE}
-
-counts = MRcounts(cellPaper)
-h = diversity(t(counts))  ## determining the species diversity
-
-
-## determining the species richness (Chao 1984,1987)
-
-c1= sapply(1:ncol(cellPaper),function(i){
-  chao1(counts[,i])
-})
-
-names(c1) = names(h) = names(status) = names(age) = colnames(cellPaper)=names(gender)
-
-
+```{r}
+table(pData(msd)$center,pData(msd)$Country)
 ```
 
-Preprocessing to check for NA values and filter those OTUs which have $99\%$ zero entries.
+The first question we are interested here is to see whether we can group samples by collection site and then age. Specifically, we will investigate potential grouping
+structure inside each country, each disease group and/or each age group, given that these groups
+are known to differ in bacteria abundance levels.
 
-```{r data_preprocess, echo=TRUE, eval=FALSE}
-counts <- t(counts);
 
-## handling NA if any in the data
-counts_preprocess <- handleNA(counts)$data;
-
-## Removing the sparse OTUs
-counts_filtered <- RemoveSparseFeatures(counts_preprocess,0.99)$data; 
-
-## the OTUs that are very sparse 
-otu_removed <- RemoveSparseFeatures(counts_preprocess,0.99)$sparse_features;
-
-## Performing the Structure plots for 3 choices (k=2,3,4) with Age, gender and status as metadata 
-
+```{r}
+table( pData(msd)$Type, pData(msd)$AgeFactor )
 ```
 
-Now we perform Structure with number of topics varying from 2 to 6 and save the Structure plots to file.
+Extract phenotypes of interest
 
-```{r structure, echo=TRUE, eval=FALSE}
+```{r}
+country <- pData(msd)$Country
+center <- pData(msd)$center
+age_factor <- pData(msd)$AgeFactor  
+type <- pData(msd)$Type
+```
 
-nclus_vec <- 5:6;
 
-if(!dir.exists("Structure")) dir.create("Structure")
-if(!dir.exists("Structure/batch_uncorrected")) dir.create("Structure/batch_uncorrected")
+## Preprocessing counts
 
-bayesfac <- array(0,length(nclus_vec));
+```{r}
+str(MRcounts(msd))
+```
 
-samp_metadata <- cbind.data.frame(age,status,gender);
-colnames(samp_metadata) = c("Age","Status","Gender");
+Library size, also known sampling depth. We will use the default 1000 count in the metagenomeSeq package to filter samples.
 
-for(num in 1:length(nclus_vec))
-{
-  if(!dir.exists(paste0("Structure/batch_uncorrected/clus_",nclus_vec[num]))) dir.create(paste0("Structure/batch_uncorrected/clus_",nclus_vec[num]))
-  obj <- StructureObj(counts_filtered,nclus_vec[num],samp_metadata = samp_metadata, tol=0.001, batch_lab = NULL, path=paste0("Structure/batch_uncorrected/clus_",nclus_vec[num]),partition=c('FALSE','TRUE','TRUE'));
+```{r}
+libsize <- colSums(MRcounts(msd))
+
+plot(log2(libsize[order(libsize)]), type = "h",
+     ylab = "Sampling depth (log2 library size)",
+     xlab = "Sample ordered by sampling depth")
+```
+
+
+Frequency count of number of present samples
+
+```{r}
+# 0 if 0 gene count, and 1 if > 0 gene count
+gene_present <- rowSums(MRcounts(msd) > 0)
+
+plot(gene_present, type = "h",
+     ylab = "Number of present samples",
+     xlab = "Number of genes")
+```
+
+
+Filter samples and genes
+
+```{r}
+count_filtered <- filterData(MRcounts(msd), present = 10, depth = 100)
+
+sum( is.na(count_filtered) )
+
+# Per gene proportion of present samples
+prop_present <- rowMeans(count_filtered)
+summary(prop_present)
+```
+
+
+
+## Within-group clustering 
+
+```{r, eval = FALSE}
+if(!dir.exists(file.path("./internal_data/diarrhea", "Structure"))) {
+    dir.create(file.path("./internal_data/diarrhea", "Structure"))}
+if(!dir.exists(file.path("./internal_data/diarrhea", "Structure_batch_uncorrected"))) {
+    dir.create(file.path("./internal_data/diarrhea", "Structure_batch_uncorrected"))}
+
+bayesfac <- array(0, length(n_cluster) )
+
+samp_metadata <- cbind.data.frame(center, country)
+colnames(samp_metadata) = c("Center","Country")
+
+# Create output folder for each case type and each age group
+for (per_type in 1: length(unique(type)) ) {
+  for (per_age in 1: length(unique(age_factor)) ) {
+      if(!dir.exists( paste0("./internal_data/diarrhea/Structure_batch_uncorrected/",
+                             unique(type)[per_type], "-", "agegroup", per_age) ) ) {
+        dir.create( paste0("./internal_data/diarrhea/Structure_batch_uncorrected/",
+                             unique(type)[per_type], "-", "agegroup", per_age) )
+        }
+  }
+  }
+        
+
+# Structure fitting of 2 to 10 possible topics (groups)
+n_clust <- c(2:10)
+
+for (per_type in 1:length(unique(type)) ) {
+  for (per_age in 1:length(unique(age_factor)) ) {
+  count_subdata <- count_filtered[ , pData(msd)$type == unique(type)[per_type]
+                                   & pData(msd)$Age == unique(age_factor)[per_age] ]
+        for(per_structure in 1:length(n_clust)) {
+          if(!dir.exists( paste0("./internal_data/diarrhea/Structure_batch_uncorrected/",
+                             unique(type)[per_type], "-", "agegroup", per_age,
+                             "/clust_", n_clust[per_structure]) ) ) {
+              dir.create( paste0("./internal_data/diarrhea/Structure_batch_uncorrected/",
+                             unique(type)[per_type], "-", "agegroup", per_age,
+                             "/clust_", n_clust[per_structure]) )
+          }
+
+        fit <- StructureObj(count_filtered, n_clust[per_structure],
+                            samp_metadata = samp_metadata, 
+                            tol = 0.001, batch_lab = NULL,
+                            path = paste0("./internal_data/diarrhea/Structure_batch_uncorrected/",
+                               unique(type)[per_type], "-", "agegroup", per_age, "/clust_",
+                               n_clust[per_structure] ),
+                            partition=c('FALSE','TRUE','TRUE') )
+      }
+  }
 }
+```
+
+
+
+Assess country fit. Easier to interpret.
+
+
+```{r}
+output_dir <- "./internal_data/diarrhea/Structure_batch_uncorrected/Control-agegroup5"
+
+fit <- read.table( file = paste0(output_dir, "/clust_4/", "omega_mat.txt"))
+
+barplot(t(fit), col = c(1:4), )
+
+
+barplot(t(docweights_ordered),col=2:(nclus+1),axisnames=F,space=0,border=NA,
+           main=paste("Structure arranged by",colnames(samp_metadata)[num],": topics=",nclus),
+           las=las,ylim=c(0,1),ylab="admix prop", xlab=paste0(colnames(samp_metadata)[num]),
+           cex.axis=cex.axis,cex.main=cex.main);
 
 
 ```
-
-## Number of topics : 2
-
-<img src='Structure/batch_uncorrected/clus_2/struct_clus_2_Age.png' style="width:304px;height:228px;">
-<img src='Structure/batch_uncorrected/clus_2/struct_clus_2_Gender.png' style="width:304px;height:228px;">
-<img src='Structure/batch_uncorrected/clus_2/struct_clus_2_Status.png' style="width:304px;height:228px;">
-
-## Number of topics : 4
-
-<img src='Structure/batch_uncorrected/clus_4/struct_clus_4_Age.png' style="width:304px;height:228px;">
-<img src='Structure/batch_uncorrected/clus_4/struct_clus_4_Gender.png' style="width:304px;height:228px;">
-<img src='Structure/batch_uncorrected/clus_4/struct_clus_4_Status.png' style="width:304px;height:228px;">
-
-
-## Number of topics : 6
-
-<img src='./Structure/batch_uncorrected/clus_6/struct_clus_6_Age.png' style="width:304px;height:228px;">
-<img src='./Structure/batch_uncorrected/clus_6/struct_clus_6_Gender.png' style="width:304px;height:228px;">
-<img src='./Structure/batch_uncorrected/clus_6/struct_clus_6_Status.png' style="width:304px;height:228px;">
-
 
