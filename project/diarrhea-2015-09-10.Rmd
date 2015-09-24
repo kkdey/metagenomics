@@ -130,9 +130,6 @@ save(topics_country, file = "./rdas/topics-diarrhea.rda")
 
 Make a plotting helper function.
 
-```{r}
-#### Age group 12-18
-
 ```{r, fig.height=12, fig.width=12}
 structure_plot <- function(per_country, per_age_group, topics_country, msd_subset) {
   topics_per_country <- topics_country[[per_country]]
@@ -191,7 +188,7 @@ structure_plot(per_country = 1, per_age_group = 2, topics_country, msd_subset)
 structure_plot(per_country = 1, per_age_group = 4, topics_country, msd_subset)
 ```
 
-#### Age group 6-12
+#### Age group 0-6
 
 ```{r, fig.height=12, fig.width=12}
 structure_plot(per_country = 1, per_age_group = 5, topics_country, msd_subset)
@@ -226,7 +223,7 @@ structure_plot(per_country = 2, per_age_group = 2, topics_country, msd_subset)
 structure_plot(per_country = 2, per_age_group = 4, topics_country, msd_subset)
 ```
 
-#### Age group 6-12
+#### Age group 0-6
 
 ```{r, fig.height=12, fig.width=12}
 structure_plot(per_country = 2, per_age_group = 5, topics_country, msd_subset)
@@ -260,7 +257,7 @@ structure_plot(per_country = 3, per_age_group = 2, topics_country, msd_subset)
 structure_plot(per_country = 3, per_age_group = 4, topics_country, msd_subset)
 ```
 
-#### Age group 6-12
+#### Age group 0-6
 
 ```{r, fig.height=12, fig.width=12}
 structure_plot(per_country = 3, per_age_group = 5, topics_country, msd_subset)
