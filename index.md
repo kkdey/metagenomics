@@ -20,7 +20,7 @@ description: Application of admixture mixed model approach to metagenomic counts
 
 ### Diarrhea data
 
-* [Admixture clustering, center effect](project/diarrhea-2015-09-10.Rmd)
+* [Admixture clustering, center effect](project/diarrhea-2015-09-10.html)
 
 
 
