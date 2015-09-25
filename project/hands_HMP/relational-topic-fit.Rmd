@@ -1,6 +1,6 @@
 ---
 title: "Explore relational topic model"
-author: "Kushal K Dey, Joyce Hsiao, Joe Paulson"
+author: "Joyce Hsiao"
 date: "2015-09-24"
 output: 
 html_document:
@@ -150,7 +150,7 @@ topic_match_sort <- lapply(unique_subject, function(xx) {
     ii_subject <- which(subjects %in% xx)
     ii_topic[ii_subject]
 })
-topic_match_sort
+#topic_match_sort
 
 table(sapply(topic_match_sort, function(xx) xx[1] == xx[2]))
 ```
@@ -173,7 +173,7 @@ topic_match_sort <- lapply(unique_subject, function(xx) {
     ii_subject <- which(subjects %in% xx)
     ii_topic[ii_subject]
 })
-topic_match_sort
+#topic_match_sort
 
 table(sapply(topic_match_sort, function(xx) xx[1] == xx[2]))
 ```
