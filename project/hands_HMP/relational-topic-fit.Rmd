@@ -1,7 +1,7 @@
 ---
 title: "Explore relational topic model"
 author: "Joyce Hsiao"
-date: "2015-09-24"
+date: "2015-09-25"
 output: 
 html_document:
   toc: TRUE
@@ -29,7 +29,7 @@ library(metagenomeSeq)
 library(maptpx)
 #library(tsne)))
 #library(qtlcharts)
-#library(qvalue)
+library(ggplot2)
 library(lda)
 ```
 
@@ -159,6 +159,27 @@ Most individuals have similar micriobial community on the left versus
 on the right hand. 
 
 
+```{r}
+edges <- links.as.edgelist(input_link_subset)
+rtm_similarity <- predictive.link.probability(edges,
+                                              rtm.model[[1]]$document_sums,
+                                              0.1, 3)
+
+## Compute the number of linked samples (edge) for each sample (node)
+per_sample_edges <- table(factor(edges[ ,1],
+                                 levels = 1:dim(rtm.model[[1]]$document_sums)[2]) )
+
+## Compute which gene (topic) is most expressed by the samples
+max_gene <- apply(rtm.model[[1]]$document_sums, 2, which.max)
+
+qplot(data = data.frame(x = 1, y = rtm_similarity), x = x, y = y, geom = "boxplot",
+      xlab = "", 
+      ylab = "Probability of linkage between left 
+              and right hand of the same individual")
+
+```
+
+
 
 * When assume 5 underlying clusters
 
@@ -176,6 +197,15 @@ topic_match_sort <- lapply(unique_subject, function(xx) {
 #topic_match_sort
 
 table(sapply(topic_match_sort, function(xx) xx[1] == xx[2]))
+
+edges <- links.as.edgelist(input_link_subset)
+rtm_similarity <- predictive.link.probability(edges,
+                                              rtm.model[[4]]$document_sums,
+                                              0.1, 3)
+qplot(data = data.frame(x = 1, y = rtm_similarity), x = x, y = y, geom = "boxplot",
+      xlab = "", 
+      ylab = "Probability of linkage between left 
+              and right hand of the same individual")
 ```
 
 
