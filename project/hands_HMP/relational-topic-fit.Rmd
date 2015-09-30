@@ -124,6 +124,7 @@ save(rtm.model, file = "../rdas/relation-topic-hmp.rda")
 }
 ```
 
+
 ```{r}
 # document_sums: each entry is a numeric proportional
 # to the probability of seeing a topic (row) conditioned on the document column
@@ -134,6 +135,7 @@ topic_probs <- lapply(1:length(rtm.model), function(per_clust) {
                       })
 dim(topic_probs[[1]])
 ```
+
 
 Topic results
 
@@ -154,6 +156,7 @@ topic_match_sort <- lapply(unique_subject, function(xx) {
 
 table(sapply(topic_match_sort, function(xx) xx[1] == xx[2]))
 ```
+
 
 Most individuals have similar micriobial community on the left versus
 on the right hand. 
@@ -212,9 +215,11 @@ qplot(data = data.frame(x = 1, y = rtm_similarity), x = x, y = y, geom = "boxplo
 
 Structure plot
 
+* Arranged by left or right hand
+
 ```{r}
 nclust <- 2:5
-ii_order <- order(metadata_crease_subset$hostsubjectid)
+ii_order <- order(metadata_crease_subset$HMPbodysubsite)
 for (per_clust in 1:1) {
       clust <- nclust[per_clust]
       docweights <- topic_probs[[per_clust]]
@@ -233,6 +238,25 @@ for (per_clust in 1:1) {
 #       axis(1, at = mid_point, unique(type_ordered[,1]), las = 2, cex.axis=0.3)
 }
 ```
+
+
+PCA plot
+
+```{r}
+ii_label <- apply(topic_probs[[1]], 2, which.max)
+
+pca_crease <- prcomp(log10(counts_crease_subset + 1) %*% t(log10(counts_crease_subset + 1)))
+
+library(qtlcharts)
+iplot(pca_crease$x[,1], pca_crease$x[,2], 
+      as.numeric(as.factor(ii_label)), ii_label)
+
+iplot(pca_crease$x[,1], pca_crease$x[,2], 
+      as.numeric(as.factor(metadata_crease_subset$hostsubjectid)),
+      metadata_crease_subset$hostsubjectid)
+```
+
+
 
 
 
