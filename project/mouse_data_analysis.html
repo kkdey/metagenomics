@@ -76,6 +76,10 @@ img {
 <li><a href="#structure-by-rel.time">Structure (by rel.time)</a></li>
 </ul></li>
 <li><a href="#observations-from-structure">Observations from Structure</a></li>
+<li><a href="#cluster-driving-otus">Cluster driving OTUs</a><ul>
+<li><a href="#k2-case-study">K=2 case study</a></li>
+<li><a href="#k7-case-study">K=7 case study</a></li>
+</ul></li>
 </ul>
 </div>
 
@@ -108,32 +112,9 @@ if (file.exists(&quot;./rdas/mouse-metagenome.rda&quot;)) {
 } else {
 StructureObj(counts ,nclus_vec,samp_metadata = samp_metadata, tol=0.0005, batch_lab = NULL, path_rda=&quot;./rdas/mouse-metagenome.rda&quot;,path_struct = &quot;../plots/mouse-metagenome&quot;);
 mouse_metagenome_topics &lt;- get(load(&quot;./rdas/mouse-metagenome.rda&quot;));  
-}</code></pre>
-<pre><code>## 
-## Estimating on a 139 document collection.
-## Fitting the 2 topic model.
-## log posterior increase: 8102.1356, 2856.7486, 629.9538, 461.0727, 64.5209, 131.3846, done.
-## 
-## Estimating on a 139 document collection.
-## Fitting the 3 topic model.
-## log posterior increase: 11441.3183, 1715.1774, 306.3255, 103.1798, 29.738, 27.7556, 19.9539, 6.6385, 10.0616, 6.9911, 2.4455, 0.3671, 3.0876, 0.1791, done.
-## 
-## Estimating on a 139 document collection.
-## Fitting the 4 topic model.
-## log posterior increase: 19387.1497, 1674.8459, 561.8827, 186.4029, 174.3325, 53.0499, 23.8922, 4.0914, 0.9832, 3.6044, 2.6939, 18.7037, 3.1715, 1.1553, 0.4563, 0.0706, done.
-## 
-## Estimating on a 139 document collection.
-## Fitting the 5 topic model.
-## log posterior increase: 12772.3377, 1560.6266, 372.1728, 325.217, 364.513, 75.3364, 113.0105, 7.7734, 8.6048, 2.5249, 1.3384, 0.1724, done.
-## 
-## Estimating on a 139 document collection.
-## Fitting the 6 topic model.
-## log posterior increase: 21500.8652, 2317.9657, 966.4308, 250.9518, 59.9154, 76.4854, 63.8113, 31.8394, 17.289, 17.9135, 14.1701, 12.0133, 19.9342, 5.9063, 5.1101, 3.8969, 1.5463, 0.7776, 0.1386, 0.0662, done.
-## 
-## Estimating on a 139 document collection.
-## Fitting the 7 topic model.
-## log posterior increase: 18910.0911, 2542.2412, 711.1651, 373.4305, 226.1082, 473.3741, 154.1116, 66.6678, 56.014, 99.7666, 87.4544, 33.4566, 7.1528, 10.19, 0.7906, 1.3324, 0.21, done.</code></pre>
-<pre class="r"><code>for(num in 1:length(nclus_vec))
+}
+
+for(num in 1:length(nclus_vec))
 {
 obj &lt;- StructureObj_omega(mouse_metagenome_topics[[num]]$omega, samp_metadata = samp_metadata, batch_lab = NULL,partition = rep(&quot;TRUE&quot;,dim(samp_metadata)[2]),path_struct='../plots/mouse-metagenome',control=list(cex.axis=1));
 }</code></pre>
@@ -153,6 +134,47 @@ obj &lt;- StructureObj_omega(mouse_metagenome_topics[[num]]$omega, samp_metadata
 <div id="observations-from-structure" class="section level2">
 <h2>Observations from Structure</h2>
 <p>It seems that for <span class="math">\(K=2\)</span>, the admixture method is picking up two very distinct clusters which seems from The Structure plots to be difference in diet- BK and Western. However, it is not convincing because there also seems to be a bit of a confounding effect between status and diet. However, diet seems to be the stronger candidate. Post <span class="math">\(K=2\)</span>, for higher number of clusters, we find that the clusters are reflecting the time variation. So, if we annotate the OTUs driving the higher order clusters, we should get OTUs that are differentially abundant over time. The other interesting observation was that there seemed to be some difference between times <span class="math">\(21\)</span> and <span class="math">\(22\)</span> despite these times being very close. I also wonder why two back to back time points would be reported and they would be so different. Is there a biological explanantion for this. Can this be technical error?</p>
+</div>
+<div id="cluster-driving-otus" class="section level2">
+<h2>Cluster driving OTUs</h2>
+<p>We now focus on extracting the significant OTUs that drive the clusters. We do this for <span class="math">\(K=2\)</span> with the aim to pick up the OTUs varying across the diet and also for <span class="math">\(K=7\)</span> with the aim to pick up the OTUs varying across time in abundance patterns.</p>
+<div id="k2-case-study" class="section level3">
+<h3>K=2 case study</h3>
+<pre class="r"><code>theta &lt;- mouse_metagenome_topics[[1]]$theta;
+features &lt;- ExtractTopFeatures(theta,top_features=50,method=&quot;poisson&quot;)
+
+features_vec &lt;- unique(as.vector(features));
+
+class &lt;- as.numeric(apply(theta[features_vec,], 1, which.max))
+
+driving_otus &lt;- rownames(theta[features_vec,]);
+
+driving_otus_per_class &lt;- lapply(1:dim(theta)[2], function(x) driving_otus[which(class==x)]);
+
+names(driving_otus_per_class) &lt;- c(&quot;red&quot;,&quot;green&quot;)
+
+save(driving_otus_per_class, file=&quot;rdas/driving_otu_clus_2.rda&quot;)</code></pre>
+<p>The output list of the driving genes for each cluster is saved in the <strong>rdas/driving_otu_clus_2.rda</strong> file with the names of the list being the cluster color for the cluster it corresponds to.</p>
+</div>
+<div id="k7-case-study" class="section level3">
+<h3>K=7 case study</h3>
+<p>We now obtain the OTU names for <span class="math">\(K=7\)</span> that drive the clusters.</p>
+<pre class="r"><code>theta &lt;- mouse_metagenome_topics[[6]]$theta;
+features &lt;- ExtractTopFeatures(theta,top_features=50,method=&quot;poisson&quot;)
+
+features_vec &lt;- unique(as.vector(features));
+
+class &lt;- as.numeric(apply(theta[features_vec,], 1, which.max))
+
+driving_otus &lt;- rownames(theta[features_vec,]);
+
+driving_otus_per_class &lt;- lapply(1:dim(theta)[2], function(x) driving_otus[which(class==x)]);
+
+names(driving_otus_per_class) &lt;- c(&quot;red&quot;,&quot;green&quot;,&quot;blue&quot;,&quot;cyan&quot;,&quot;pink&quot;,&quot;yellow&quot;,&quot;gray&quot;);
+
+save(driving_otus_per_class, file=&quot;rdas/driving_otu_clus_7.rda&quot;)</code></pre>
+<p>The output list of the driving genes for each cluster is saved in the <strong>rdas/driving_otu_clus_7.rda</strong> file with the names of the list being the cluster color for the cluster it corresponds to.</p>
+</div>
 </div>
 
 
