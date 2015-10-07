@@ -1,12 +1,8 @@
-_site
-project/cell_paper/cellPaperRaw.rdata
-project/cell_paper/Structure
+project/rdas/mouse-metagenome.rda
 project/.DS_Store
-project/cell_paper/.Rhistory
-project/cell_paper/post_Structure/
-.DS_Store
-<<<<<<< HEAD
-.Rproj.user
-=======
+project/cell_paper
 data/
->>>>>>> 6a6e1fa35db88cc605c3c3704373f4339ebc9911
+.DS_Store
+project/hands_HMP/.DS_Store
+project/rdas/.DS_Store
+
