@@ -22,6 +22,9 @@ description: Application of admixture mixed model approach to metagenomic counts
 
 * [Admixture clustering, center effect](project/diarrhea-2015-09-10.html)
 
+### Analysis of the Mouse Data
+
+* [Admixture clustering, OTU annotations](project/mouse_data_analysis.html)
 
 
 ---
