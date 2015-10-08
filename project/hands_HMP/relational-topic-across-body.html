@@ -10,7 +10,7 @@
 
 <meta name="author" content="Joyce Hsiao" />
 
-<meta name="date" content="2015-09-25" />
+<meta name="date" content="2015-10-08" />
 
 <title>Explore relational topic model: across body sites</title>
 
@@ -70,7 +70,7 @@ img {
 <div id="header">
 <h1 class="title">Explore relational topic model: across body sites</h1>
 <h4 class="author"><em>Joyce Hsiao</em></h4>
-<h4 class="date"><em>2015-09-25</em></h4>
+<h4 class="date"><em>2015-10-08</em></h4>
 </div>
 
 
@@ -204,23 +204,8 @@ order_otu &lt;- with(metadata_subset, order(HMPbodysupersite, HMPbodysubsite) )
 # Plot body supersite labels
 bodysuper &lt;- table(metadata_subset$HMPbodysupersite)
 
-require(broman)</code></pre>
-<pre><code>## Loading required package: broman
-## 
-## Attaching package: 'broman'
-## 
-## The following object is masked from 'package:maptpx':
-## 
-##     normalize
-## 
-## The following object is masked from 'package:Biobase':
-## 
-##     note
-## 
-## The following object is masked from 'package:BiocGenerics':
-## 
-##     normalize</code></pre>
-<pre class="r"><code>clust_vector &lt;- 2:10
+require(broman)
+clust_vector &lt;- 2:10
 color_vector &lt;- brocolors(&quot;crayons&quot;)[c(&quot;Cornflower&quot;, &quot;Navy Blue&quot;, &quot;Blue Bell&quot;,
                                        &quot;Royal Purple&quot;, &quot;Magic Mint&quot;, &quot;Green&quot;,
                                        &quot;Yellow Green&quot;, &quot;Asparagus&quot;, &quot;Sunset Orange&quot;)]

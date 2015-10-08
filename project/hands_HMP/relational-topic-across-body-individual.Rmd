@@ -7,14 +7,7 @@ html_document:
   toc: TRUE
 ---
 
-## Objectives
-
-We use the relational topic model due to [Jonatha Huang](relational-topic) to explore
-underlying micriobiome clusters in the HMP data, taking into consideration that samples collected from the same individual may share microbiome features unique to the individual. With the current framework, we hope to uncover micriobiome communities that share more similarities between individuals than within individuals.
-
-
-[relational-topic]: Chang, Jonathan and Blei, David M. Relational Topic Models for Document Networks. Artificial intelligence and statistics. 2009.
-
+Organize the relational topic fitting results by individuals
 
 ## Set up
 
@@ -142,11 +135,10 @@ dim(topic_probs[[1]])
 ## Structure plots
 
 ```{r plot_structure, message=FALSE, warning=FALSE}
-# Order of OTUs by body supersites and then by body subsites
-order_otu <- with(metadata_subset, order(HMPbodysupersite, HMPbodysubsite) )
+# Order of OTUs by indivdiuals
+order_subject <- with(metadata_subset, order(hostsubjectid) )
 
-# Plot body supersite labels
-bodysuper <- table(metadata_subset$HMPbodysupersite)
+subjects <- table( metadata_subset$hostsubjectid )
 
 require(broman)
 clust_vector <- 2:10
@@ -154,20 +146,15 @@ color_vector <- brocolors("crayons")[c("Cornflower", "Navy Blue", "Blue Bell",
                                        "Royal Purple", "Magic Mint", "Green",
                                        "Yellow Green", "Asparagus", "Sunset Orange")]
 for (i in 1:length(clust_vector)) {
-    par(mfrow = c(1,1), oma = c(4, 0, 0, 0), mar = c(5, 3, 3, 0))
-    bplot <- barplot(topic_probs[[i]][ , order_otu], 
+    par(mfrow = c(1,1), oma = c(0, 0, 0, 0), mar = c(2, 3, 3, 0))
+    bplot <- barplot(topic_probs[[i]][ , order_subject], 
                      col = color_vector[1:clust_vector[i]], 
-                     border = NA, axisnames = F, space = 0)
+                     border = NA, axisnames = F, space = 0, ylim = c(0, 1.2))
     title(main = paste( clust_vector[i], "clusters"))
-    divides <- c(0, bplot[c(cumsum(bodysuper))] )
-    
-    mids <- sapply(1: (length(divides) - 1), function(i) {
-              divides[i] + ( (divides[i+1] - divides[i])/2)
-              })
-    
-    axis(1, at = divides, labels = FALSE )
-    text(mids, par("usr")[3] - .05, labels = names(bodysuper), 
-         srt = 45, pos = 2, adj = 1, xpd = TRUE)
+    divides <- c( bplot[ c(cumsum(subjects)) ] )
+    segments(x0 = divides, x1 = divides,
+             y0 = 0, y1 = 1.2,
+             col = "black", lwd = 1)
 }
 ```
 

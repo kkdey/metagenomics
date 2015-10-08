@@ -12,8 +12,9 @@ description: Application of admixture mixed model approach to metagenomic counts
 * [gene expression patterns fossa/crease](project/hands_HMP/fossa_crease_qtlcharts.html)
 * Clustering with identity contraint
 	* [Crease only](project/hands_HMP/relational-topic-fit.html)
-	* Across body sites
-		* [Structure plots](project/hands_HMP/relational-topic-across-body.html)
+	* Cluster across body sites
+		* [Structure plots by body site](project/hands_HMP/relational-topic-across-body.html)
+		* [Structure plots by individual](project/hands_HMP/relational-topic-across-body-individual.html)
 
 ---
 
