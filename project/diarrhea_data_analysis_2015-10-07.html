@@ -78,6 +78,7 @@ img {
 </ul></li>
 <li><a href="#observations-from-structure">Observations from Structure</a></li>
 <li><a href="#cluster-driving-otus">Cluster driving OTUs</a></li>
+<li><a href="#country-effects">Country effects??</a></li>
 </ul>
 </div>
 
@@ -156,6 +157,16 @@ names(driving_otus_per_class) &lt;- c(&quot;red&quot;,&quot;green&quot;)
 
 save(driving_otus_per_class, file=&quot;rdas/driving_otu_diarrhea_clus_2.rda&quot;)</code></pre>
 <p>The output list of the driving genes for each cluster is saved in the <strong>rdas/driving_otu_diarrhea_clus_2.rda</strong> file with the names of the list being the cluster color for the cluster it corresponds to.</p>
+</div>
+<div id="country-effects" class="section level2">
+<h2>Country effects??</h2>
+<p>We find for <span class="math">\(K=5\)</span>,</p>
+<pre class="r"><code>clus_topics &lt;- diarrhea_metagenome_topics[[4]]$omega
+pink_cluster &lt;- clus_topics[,5];
+table(samp_metadata[which(pink_cluster &gt; 0.7),1:4]$country)</code></pre>
+<pre><code>## 
+##     Gambia       Mali      Kenya Bangladesh 
+##          8          2         36         17</code></pre>
 </div>
 
 

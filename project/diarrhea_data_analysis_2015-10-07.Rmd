@@ -115,3 +115,14 @@ save(driving_otus_per_class, file="rdas/driving_otu_diarrhea_clus_2.rda")
 ```
 
 The output list of the driving genes for each cluster is saved in the **rdas/driving_otu_diarrhea_clus_2.rda** file with the names of the list being the cluster color for the cluster it corresponds to.
+
+## Country effects??
+
+We find for $K=5$, 
+
+```{r echo=TRUE, eval=TRUE}
+clus_topics <- diarrhea_metagenome_topics[[4]]$omega
+pink_cluster <- clus_topics[,5];
+table(samp_metadata[which(pink_cluster > 0.7),1:4]$country)
+```
+
