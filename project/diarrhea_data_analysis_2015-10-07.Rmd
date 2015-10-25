@@ -123,6 +123,7 @@ We find for $K=5$,
 ```{r echo=TRUE, eval=TRUE}
 clus_topics <- diarrhea_metagenome_topics[[4]]$omega
 pink_cluster <- clus_topics[,5];
-table(samp_metadata[which(pink_cluster > 0.7),1:4]$country)
+table(samp_metadata[which(pink_cluster > 0.5),1:4]$country)
 ```
 
+It seems that Kenya is representing a major proportion of samples that have high admixing in the pink cluster. Bangladesh is a distant second. It would be interesting to see why Kenya and Bangladesh are so markedly different from the other countries in terms of their admixing in pink cluster. 

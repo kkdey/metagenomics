@@ -163,10 +163,11 @@ save(driving_otus_per_class, file=&quot;rdas/driving_otu_diarrhea_clus_2.rda&quo
 <p>We find for <span class="math">\(K=5\)</span>,</p>
 <pre class="r"><code>clus_topics &lt;- diarrhea_metagenome_topics[[4]]$omega
 pink_cluster &lt;- clus_topics[,5];
-table(samp_metadata[which(pink_cluster &gt; 0.7),1:4]$country)</code></pre>
+table(samp_metadata[which(pink_cluster &gt; 0.5),1:4]$country)</code></pre>
 <pre><code>## 
 ##     Gambia       Mali      Kenya Bangladesh 
-##          8          2         36         17</code></pre>
+##         14          5         68         31</code></pre>
+<p>It seems that Kenya is representing a major proportion of samples that have high admixing in the pink cluster. Bangladesh is a distant second. It would be interesting to see why Kenya and Bangladesh are so markedly different from the other countries in terms of their admixing in pink cluster.</p>
 </div>
 
 
