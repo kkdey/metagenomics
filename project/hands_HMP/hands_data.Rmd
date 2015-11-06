@@ -13,7 +13,7 @@ suppressMessages(suppressWarnings(library(maptpx)))
 suppressMessages(suppressWarnings(library(tsne)))
 suppressMessages(suppressWarnings(library(qtlcharts)))
 
-#setwd('/Users/kushal/Documents/metagenomics/src')
+setwd('/Users/kushal/Documents/metagenomics/project')
 load('../data/HMPvs35_nt100_MRexperiment.rdata')
 data <- t(MRcounts(hmp));
 metadata <- pData(hmp);
@@ -31,7 +31,7 @@ str(metadata)
 Next we extract the **bodysubsite** info which contains the information on the specific parts of the hand (both left and right) that have been studied.
 
 ```{r, body_subsite, echo=TRUE, eval=TRUE}
-type_bodysite <- metadata$HMPbodysubsite;
+type_bodysite <- metadata$HMPbodysupersite[which(metadata$HMPbodysupersite=="Skin")];
 ```
 
 Then, we apply the Topic model clustering on these extrcated samples and we arrange the samples by the part of the hand it comes from.
@@ -42,7 +42,7 @@ structure_hands_metagenome <- function(counts_data,type_info,K)
   #Topic_Clus <- topics(counts_data,K,tol=0.0001);
   #write.table(Topic_Clus$omega,paste0('../internal_data/hands_data/hands_topics_omega_',K,'.txt'));
   #write.table(Topic_Clus$theta,paste0('../internal_data/hands_data/hands_topics_theta_',K,'.txt'));
-  docweights <- as.matrix(read.table(paste0('../internal_data/hands_data/hands_topics_omega_',K,'.txt')));
+  docweights <- as.matrix(read.table(paste0('internal_data/hands_data/hands_topics_omega_',K,'.txt')));
   
   type_ordered <- type_info[order(type_info)];
   docweights_ordered <- docweights[order(type_info),];
@@ -105,7 +105,7 @@ We now consider the clustering of all the tissue samples together, not just Skin
 ```{r cluster_full_data, echo=FALSE, eval=TRUE}
 full_data <- data;
 metadata <- pData(hmp);
-type_bodysite <- metadata$HMPbodysubsite;
+type_bodysite <- metadata$HMPbodysupersite;
 structure_body_metagenome <- function(counts_data,type_info,K)
 {
   #Topic_Clus <- topics(counts_data,K,tol=0.0001);
