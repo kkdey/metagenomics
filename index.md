@@ -39,6 +39,12 @@ description: Application of admixture mixed model approach to metagenomic counts
 
 
 ---
+### Topic model for metagenomics data
+
+* [Topic model overview for metagenomics data](project/metagnenome_Topics.pdf)
+
+---
+
 If anything here is confusing (or wrong), or if I've missed
 important details, please
 [submit an issue](https://github.com/kkdey/metagenomics/issues) or fork [the GitHub repository for this website](http://github.com/kkdey/metagenomics),
