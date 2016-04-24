@@ -1,0 +1,10 @@
+\frametitle{Possible routes \;\;}
+
+There is a hierarchy in the features in metagenomics data (OTU, species, genus).
+We may want to either incorporate this hierarchy in the model or perform a post-processing step to determine the effect of each level in driving clusters.
+\pause \newline
+
+We may want to compare different clustering methods like PCA, t-SNE, diffusion maps with the GoM model and build a pipeline for metagenomics data that performs all these exploration and generates effective visualizations to interpret the data \pause \newline
+
+We may want to build networks over the OTUs and compare these network method results with the GoM output.
+
