@@ -309,7 +309,7 @@ We have shown for RNA-seq data across multiple tissues that GoM model performs b
 
 In cases, where there the topic proportions $\omega_{n.}$ vary continuously across samples, GoM models can pick such variations well, compared to other competing methods like PCA and t-SNE. \pause \newline
 
-The Structure plot provides a nice visualization of the clustering patterns across samples, in particular, when there are a large number of samples in the data. \pause \newline
+The Structure plot provides a nice visualization of the clustering patterns across samples, and one can extract the top features driving each cluster. \pause \newline
 
 \end{frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
