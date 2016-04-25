@@ -1,8 +1,0 @@
-
-extras/*
-internal_data/*
-.Rhistory
-.gitignore~
-src/#hands_data.Rmd#
-.#.gitignore
-

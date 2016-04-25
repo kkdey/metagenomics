@@ -1,0 +1,206 @@
+---
+title: "metagenomics case study- HMP"
+author: "Kushal K Dey, Joyce HSiao, Joe Paulson"
+date: "August 19, 2015"
+output: html_document
+---
+
+First load the HMP RData and extracting the counts table and the phenotype/ metadata tables.
+
+```{r data_load, echo=TRUE, eval=TRUE, warning=FALSE, message=FALSE}
+library(metagenomeSeq)
+library(maptpx)
+library(tsne)
+library(qtlcharts)
+library(CountClust)
+load('../data/HMPvs35_nt100_MRexperiment.rdata')
+data <- t(MRcounts(hmp));
+metadata <- pData(hmp);
+otu_data <- featureData(hmp)
+```
+
+Extract the data related to the hands. We first extract those sample indices where the **bodysupersite** label is **Skin** and it seemed they all corresponded to left hand or right hand.
+
+```{r, hands_data, echo=TRUE, eval=TRUE}
+hands_data <- data[which(metadata$HMPbodysupersite=="Skin"),];
+hands_metadata <- metadata[which(metadata$HMPbodysupersite=="Skin"),];
+str(metadata)
+```
+
+## Crease vs Fossa (GoM model)
+
+```{r echo=TRUE, eval=FALSE}
+hands_gom <- CountClust::FitGoM(hands_data, K=c(2,4,6), tol=0.1);
+save(hands_gom, file="../rdas/hands_gom_fit.rda")
+```
+
+### K=2
+
+```{r echo=TRUE, eval=TRUE}
+hands_gom <- get(load("../rdas/hands_gom_fit.rda"));
+omega <- hands_gom$clust_2$omega
+theta <- hands_gom$clust_2$theta
+```
+
+
+```{r}
+annotation <- data.frame(
+    sample_id = paste0("X", 1:nrow(omega)),
+    tissue_label = factor(hands_metadata$HMPbodysubsite) ) 
+
+
+StructureGGplot(omega = omega,
+                annotation = annotation,
+                palette = RColorBrewer::brewer.pal(8, "Accent"),
+                yaxis_label = "hands body subsite",
+                order_sample = TRUE,
+                axis_tick = list(axis_ticks_length = .1,
+                axis_ticks_lwd_y = .1,
+                axis_ticks_lwd_x = .1,
+                axis_label_size = 10,
+                axis_label_face = "bold"))
+
+
+```
+
+### K=4
+
+```{r echo=TRUE, eval=TRUE}
+omega <- hands_gom$clust_4$omega
+theta <- hands_gom$clust_4$theta
+```
+
+
+```{r}
+annotation <- data.frame(
+    sample_id = paste0("X", 1:nrow(omega)),
+    tissue_label = factor(hands_metadata$HMPbodysubsite) ) 
+
+
+StructureGGplot(omega = omega,
+                annotation = annotation,
+                palette = RColorBrewer::brewer.pal(8, "Accent"),
+                yaxis_label = "hands body subsite",
+                order_sample = TRUE,
+                axis_tick = list(axis_ticks_length = .1,
+                axis_ticks_lwd_y = .1,
+                axis_ticks_lwd_x = .1,
+                axis_label_size = 7,
+                axis_label_face = "bold"))
+
+
+```
+
+
+The $K=4$ seems to differentiate between crease and fossa, but for $K=2$, the clustering between fossa and crease was not obvious.
+
+We do a PC plot to see if this pattern shows up in the PCs. It does seem  that crease and fossa do cluster sort of together. 
+
+```{r pca, echo=TRUE, eval=TRUE, cache=TRUE}
+pr <- prcomp(log(hands_data+0.5)%*%t(log(hands_data+0.5)));
+plot(pr)
+```
+
+The plot of PC1 vs PC2 is as follows
+
+```{r pca_12, echo=TRUE, eval=TRUE}
+suppressWarnings(suppressMessages(iplot(pr$x[,1], pr$x[,2], as.numeric(as.factor(hands_metadata$HMPbodysubsite)),hands_metadata$HMPbodysubsite)))
+```
+
+The plot of PC1 vs PC3 is as follows
+
+```{r pca_13, echo=TRUE, eval=TRUE}
+suppressWarnings(suppressMessages(iplot(pr$x[,1], pr$x[,3], as.numeric(as.factor(hands_metadata$HMPbodysubsite)),hands_metadata$HMPbodysubsite)))
+```
+
+
+
+```{r tsne_omega, echo=FALSE, eval=FALSE}
+K=8
+docweights <- as.matrix(read.table(paste0('../internal_data/hands_data/hands_topics_omega_',K,'.txt')));
+#tsne_samples <- tsne(docweights,2);
+#write.table(tsne_samples,paste0('../internal_data/hands_data/tsne_samples_',K,'.txt'));
+tsne_samples <- as.matrix(read.table(paste0('../internal_data/hands_data/tsne_samples_',K,'.txt')));
+options(warn=-1)
+suppressWarnings(suppressMessages(iplot(tsne_samples[,1],tsne_samples[,2], as.numeric(as.factor(hands_metadata$HMPbodysubsite)),hands_metadata$HMPbodysubsite)))
+```
+
+
+## Clustering of the full data 
+
+We now consider the clustering of all the tissue samples together, not just Skin or crease/fossa. We check if the samples coming from other tissues lead to distinct clusters or not. 
+
+```{r echo=TRUE, eval=FALSE}
+full_gom <- CountClust::FitGoM(data, K=c(2,4,6,8), tol=0.1);
+save(full_gom, file="../rdas/full_gom_fit.rda")
+```
+
+
+### K=6
+
+```{r}
+full_gom <- get(load("../rdas/full_gom_fit.rda"));
+omega <- full_gom$clust_6$omega
+theta <- full_gom$clust_6$theta
+
+docweights_per_site_mean <- apply(omega, 2,
+                                    function(x) { tapply(x, metadata$HMPbodysubsite, mean) })
+ordering <- heatmap(docweights_per_site_mean)$rowInd
+
+sites_ordered <- sort(unique(metadata$HMPbodysubsite))[ordering]
+
+
+annotation <- data.frame(
+    sample_id = paste0("X", 1:nrow(omega)),
+    tissue_label = factor(metadata$HMPbodysubsite,
+                          levels = rev(sites_ordered) )) 
+
+
+StructureGGplot(omega = omega,
+                annotation = annotation,
+                palette = RColorBrewer::brewer.pal(8, "Accent"),
+                yaxis_label = "hands body subsite",
+                order_sample = TRUE,
+                axis_tick = list(axis_ticks_length = .1,
+                axis_ticks_lwd_y = .1,
+                axis_ticks_lwd_x = .1,
+                axis_label_size = 7,
+                axis_label_face = "bold"))
+
+
+```
+
+
+### K=8
+
+```{r}
+full_gom <- get(load("../rdas/full_gom_fit.rda"));
+omega <- full_gom$clust_8$omega
+theta <- full_gom$clust_8$theta
+
+docweights_per_site_mean <- apply(omega, 2,
+                                    function(x) { tapply(x, metadata$HMPbodysubsite, mean) })
+ordering <- heatmap(docweights_per_site_mean)$rowInd
+
+sites_ordered <- sort(unique(metadata$HMPbodysubsite))[ordering]
+
+
+annotation <- data.frame(
+    sample_id = paste0("X", 1:nrow(omega)),
+    tissue_label = factor(metadata$HMPbodysubsite,
+                          levels = rev(sites_ordered) )) 
+
+
+StructureGGplot(omega = omega,
+                annotation = annotation,
+                palette = RColorBrewer::brewer.pal(8, "Accent"),
+                yaxis_label = "hands body subsite",
+                order_sample = TRUE,
+                axis_tick = list(axis_ticks_length = .1,
+                axis_ticks_lwd_y = .1,
+                axis_ticks_lwd_x = .1,
+                axis_label_size = 7,
+                axis_label_face = "bold"))
+
+
+```

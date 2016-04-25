@@ -1,0 +1,167 @@
+---
+title: "Explore relational topic model: across body sites"
+author: "Joyce Hsiao"
+date: "2015-10-08"
+output: 
+html_document:
+  toc: TRUE
+---
+
+Organize the relational topic fitting results by individuals
+
+## Set up
+
+```{r load_data, message = FALSE, warning = FALSE}
+library(metagenomeSeq)
+library(maptpx)
+#library(tsne)))
+#library(qtlcharts)
+library(ggplot2)
+library(lda)
+library(dplyr)
+```
+
+
+## Prepare data
+
+```{r}
+load(file = '../data/HMPvs35_nt100_MRexperiment.rdata')
+
+hmp <- filterData(hmp, present=10)
+
+counts <- t(MRcounts(hmp, norm=TRUE, log = FALSE))
+
+metadata <- pData(hmp)
+otu_data <- featureData(hmp)
+
+dim(metadata)
+names(metadata)
+table(metadata$HMPbodysupersite)
+```
+
+
+Select a subset of samples that include body sites commonly shared across individuals; so every individual has data in every body site.
+
+```{r}
+airways_subject <- with(metadata, hostsubjectid[metadata$HMPbodysupersite == "Airways"])
+gi_subject <- with(metadata, hostsubjectid[metadata$HMPbodysupersite == "Gastrointestinal_tract"])
+oral_subject <- with(metadata, hostsubjectid[metadata$HMPbodysupersite == "Oral"])
+skin_subject <- with(metadata, hostsubjectid[metadata$HMPbodysupersite == "Skin"])
+urogenital_subject <- with(metadata, hostsubjectid[metadata$HMPbodysupersite == "Urogenital_tract"])
+
+share_subject <- Reduce(intersect,  list(airways_subject, 
+                        gi_subject, oral_subject, skin_subject, urogenital_subject))
+str(share_subject)
+length(unique(share_subject))
+```
+
+Create selection indices.
+
+```{r}
+metadata_features <- select(metadata, bodysite, hostsubjectid, 
+                            collectday)
+
+select_rows <- !duplicated(metadata_features) & 
+                with(metadata, hostsubjectid %in% share_subject)
+
+sum(select_rows)
+
+metadata_subset <- metadata[which(select_rows), ]
+counts_subset <- counts[which(select_rows), ]
+#with(metadata[select_rows, ], table(bodysite, hostsubjectid))
+
+length(unique(metadata_subset$bodysite))
+dim(metadata_subset)
+```
+
+## Relational topic model
+
+Prepare input
+
+```{r}
+input_link <- lapply(1:length(metadata_subset$hostsubjectid), function(per_sample) {
+                          id <- metadata_subset$hostsubjectid[per_sample]
+                          link <- which(metadata_subset$hostsubjectid == id)
+                          as.integer(link[link != per_sample] - 1)
+                          })
+
+# counts entry needs to be a list 
+counts_subset <- round(counts_subset)
+
+# list of individual sample counts
+# each individual sample data must be a matrix of two rows
+# first row is an index, starting from 0
+# second row is the count of each OTU
+input_counts <- lapply(1:nrow(counts_subset), function(per_sample) {
+                          rbind(as.integer( c(0: (ncol(counts_subset) - 1 ) ) ),
+                                as.integer(counts_subset[per_sample, ] ) ) 
+                          })
+
+input_otus <- colnames(counts_subset)
+```
+
+Fit relational topic model
+
+```{r load_rtm}
+if (!file.exists("../rdas/relation-topic-bodysites.rda")) {
+  rtm.model <- lapply(2:10, function(per_clust) {
+                            rtm.collapsed.gibbs.sampler(input_counts,
+                                                        input_link,
+                                                        per_clust,
+                                                        vocab = input_otus,
+                                                        num.iterations = 35,
+                                                        alpha = 0.1, 
+                                                        eta = 0.1, beta = 3)
+                        })
+  save(rtm.model, file = "../rdas/relation-topic-bodysites.rda")
+} else {
+  load("../rdas/relation-topic-bodysites.rda")  
+}
+```
+
+
+```{r compute_topic_probs}
+# document_sums: each entry is a numeric proportional
+# to the probability of seeing a topic (row) conditioned on the document column
+
+topic_probs <- lapply(1:length(rtm.model), function(per_clust) {
+                      t(t(rtm.model[[per_clust]]$document_sums)/
+                            colSums(rtm.model[[per_clust]]$document_sums))
+                      })
+dim(topic_probs[[1]])
+```
+
+
+## Structure plots
+
+```{r plot_structure, message=FALSE, warning=FALSE}
+# Order of OTUs by indivdiuals
+order_subject <- with(metadata_subset, order(hostsubjectid) )
+
+subjects <- table( metadata_subset$hostsubjectid )
+
+require(broman)
+clust_vector <- 2:10
+color_vector <- brocolors("crayons")[c("Cornflower", "Navy Blue", "Blue Bell",
+                                       "Royal Purple", "Magic Mint", "Green",
+                                       "Yellow Green", "Asparagus", "Sunset Orange")]
+for (i in 1:length(clust_vector)) {
+    par(mfrow = c(1,1), oma = c(0, 0, 0, 0), mar = c(2, 3, 3, 0))
+    bplot <- barplot(topic_probs[[i]][ , order_subject], 
+                     col = color_vector[1:clust_vector[i]], 
+                     border = NA, axisnames = F, space = 0, ylim = c(0, 1.2))
+    title(main = paste( clust_vector[i], "clusters"))
+    divides <- c( bplot[ c(cumsum(subjects)) ] )
+    segments(x0 = divides, x1 = divides,
+             y0 = 0, y1 = 1.2,
+             col = "black", lwd = 1)
+}
+```
+
+
+
+## Session information
+
+```{r}
+sessionInfo()
+```

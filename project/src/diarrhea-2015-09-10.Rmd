@@ -1,0 +1,265 @@
+---
+title: "Diarrhea"
+author: "Joyce Hsiao,, Kushal K Dey, and Joe Paulson"
+date: "September 10, 2015"
+output: 
+  html_document:
+  toc: true
+---
+
+
+## Set up 
+
+```{r packages, warning = FALSE, message = FALSE}
+library(fossil) # for Chao1
+library(vegan)     # for Simpson
+library(metagenomeSeq) # data structure
+library(breakaway) # for breakaway
+library(maptpx) # for topic model fit
+
+if (!require(CountClust, quietly = TRUE)) {
+  library(devtools)
+  install_github("kkdey/CountClust")
+  library(CountClust)
+}
+```
+
+
+## Data preparation
+
+Loading the data 
+
+```{r data_load}
+load("./data/msd.rdata")
+head(pData(msd))
+```
+
+Data collection center by country.
+
+```{r}
+table(pData(msd)$center, pData(msd)$Country)
+```
+
+Remove Bangladesh.
+
+```{r}
+msd_subset <- msd[ , pData(msd)$Country != "Bangladesh" &
+                     pData(msd)$Type == "Control"]
+```
+
+Extract phenotypes of interest
+```{r}
+country <- pData(msd_subset)$Country
+center <- pData(msd_subset)$center
+age_factor <- pData(msd_subset)$AgeFactor  
+```
+
+
+## Preprocessing counts
+
+```{r}
+str(MRcounts(msd_subset))
+```
+
+Library size, also known sampling depth. We will use the default 1000 count in the metagenomeSeq package to filter samples.
+
+```{r}
+libsize <- colSums(MRcounts(msd_subset))
+
+plot(log2(libsize[order(libsize)]), type = "h",
+     ylab = "Sampling depth (log2 library size)",
+     xlab = "Sample ordered by sampling depth")
+abline(v = log2(1000), col = "red")
+```
+
+
+Frequency count of number of present samples
+
+```{r}
+# 0 if 0 gene count, and 1 if > 0 gene count
+gene_present <- rowSums(MRcounts(msd_subset) > 0)
+
+plot(gene_present, type = "h",
+     ylab = "Frequency",
+     xlab = "No. of genes that have with at least 1 count")
+```
+
+
+Filter samples and genes
+
+```{r}
+count_filtered <- filterData(MRcounts(msd_subset), present = 10, depth = 100)
+
+sum( is.na(count_filtered) )
+
+# Per gene proportion of present samples
+prop_present <- rowSums(count_filtered > 0)/ncol(count_filtered)
+summary(prop_present)
+```
+
+
+## Admixture modelling
+
+For each country, age group, and case status, do admixture modeling to group the samples
+and explore whether data collection centers dominate clustering results.
+
+
+```{r}
+if (file.exists("./rdas/topics-diarrhea.rda")) {
+  load("./rdas/topics-diarrhea.rda")  
+} else {
+topics_country <- lapply(1: length(unique(country)), function(per_country)  {
+  topics_age <- lapply(1: length(unique(age_factor)), function(per_age_group) {
+      ii_phenoSelect <- pData(msd_subset)$Country == unique(country)[per_country] &
+                          pData(msd_subset)$AgeFactor == unique(age_factor)[per_age_group]
+      count_subset <- count_filtered[ , ii_phenoSelect]
+      topics_list <- lapply(2:10, function(per_clust) {
+                        maptpx::topics(t(count_subset), K = per_clust, tol = .005)
+                })  
+      names(topics_list) <- paste("nclust", c(2:10), sep = "")
+      return(topics_list)
+    })
+  names(topics_age) <- unique(age_factor)
+  return(topics_age)
+  })
+names(topics_country) <- unique(country)
+save(topics_country, file = "./rdas/topics-diarrhea.rda")        
+}
+
+```
+
+Make a plotting helper function.
+
+```{r, fig.height=12, fig.width=12}
+structure_plot <- function(per_country, per_age_group, topics_country, msd_subset) {
+  topics_per_country <- topics_country[[per_country]]
+  nclust <- length(topics_per_country[[per_country]])
+
+  par(mfrow = c(3,3), mar = c(3, 3, 3, 2), cex.main = .8)
+  for (per_clust in 1:nclust) {
+      type_info <- cbind(pData(msd_subset)$center[pData(msd_subset)$Country == unique(country)[per_country] &
+                            pData(msd_subset)$AgeFactor == unique(age_factor)[per_age_group] ],
+                         pData(msd_subset)$Age[pData(msd_subset)$Country == unique(country)[per_country] &
+                            pData(msd_subset)$AgeFactor == unique(age_factor)[per_age_group] ] )
+      topics_plot <- topics_per_country[[per_age_group]][[per_clust]]
+      clust <- topics_plot$K
+      docweights <- topics_plot$omega
+      type_ordered <- type_info[order(type_info[,1], type_info[,2]), ]
+      docweights_ordered <- docweights[order(type_info[,1], type_info[,2]),]
+      barplot( t(docweights_ordered), 
+               col = 2:(clust+1), axisnames = F,
+               space = 0, border=NA,
+               main = paste("No. of clusters=", clust), las = 1,
+               ylim = c(0,1), cex.axis = 0.3, cex.main=1.4)
+      labels <- match(unique(type_ordered[,1]), type_ordered[,1])
+      abline(v=labels-1, lwd =3)
+      labels_low <- labels-1
+      labels_up <- c(labels_low[2:length(labels_low)], dim(docweights_ordered)[1])
+      mid_point <- labels_low +0.5*(labels_up-labels_low)
+      axis(1, at = mid_point, unique(type_ordered[,1]), las = 2, cex.axis=0.3)
+  }
+}
+```
+
+
+### Gambia
+
+#### Age group 24-60
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 1, per_age_group = 1, topics_country, msd_subset) 
+```
+
+#### Age group 18-24
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 1, per_age_group = 3, topics_country, msd_subset)
+```
+
+#### Age group 12-18
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 1, per_age_group = 2, topics_country, msd_subset)
+```
+
+#### Age group 6-12
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 1, per_age_group = 4, topics_country, msd_subset)
+```
+
+#### Age group 0-6
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 1, per_age_group = 5, topics_country, msd_subset)
+```
+
+
+
+
+### Mali
+
+#### Age group 24-60
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 2, per_age_group = 1, topics_country, msd_subset)
+```
+
+#### Age group 18-24
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 2, per_age_group = 3, topics_country, msd_subset)
+```
+
+#### Age group 12-18
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 2, per_age_group = 2, topics_country, msd_subset)
+```
+
+#### Age group 6-12
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 2, per_age_group = 4, topics_country, msd_subset)
+```
+
+#### Age group 0-6
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 2, per_age_group = 5, topics_country, msd_subset)
+```
+
+
+
+### Kenya
+
+#### Age group 24-60
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 3, per_age_group = 1, topics_country, msd_subset)
+```
+
+#### Age group 18-24
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 3, per_age_group = 3, topics_country, msd_subset)
+```
+
+#### Age group 12-18
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 3, per_age_group = 2, topics_country, msd_subset)
+```
+
+#### Age group 6-12
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 3, per_age_group = 4, topics_country, msd_subset)
+```
+
+#### Age group 0-6
+
+```{r, fig.height=12, fig.width=12}
+structure_plot(per_country = 3, per_age_group = 5, topics_country, msd_subset)
+```
+

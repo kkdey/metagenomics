@@ -1,0 +1,313 @@
+---
+title: "exploring individual and L/R variation"
+author: "Kushal K Dey, Joyce HSiao, Joe Paulson"
+date: "August 27, 2015"
+output: html_document
+---
+
+We load the data and separate out the fossa and crease data.
+
+```{r load_data, echo=TRUE, eval=TRUE}
+suppressMessages(suppressWarnings(library(metagenomeSeq)))
+suppressMessages(suppressWarnings(library(maptpx)))
+suppressMessages(suppressWarnings(library(tsne)))
+suppressMessages(suppressWarnings(library(qtlcharts)))
+library(qvalue)
+
+#setwd('/Users/kushal/Documents/metagenomics/src')
+load('../data/HMPvs35_nt100_MRexperiment.rdata')
+hmp <- filterData(hmp,present=10);
+#mat_temp <- t(MRcounts(hmp));
+mat = t(MRcounts(hmp,norm=TRUE,log=TRUE));
+mat_round <- round(mat);
+metadata <- pData(hmp);
+otu_data <- featureData(hmp)
+
+hands_data <- mat_round[which(metadata$HMPbodysupersite=="Skin"),];
+metadata <- metadata[which(metadata$HMPbodysupersite=="Skin"),];
+
+fossa_crease_label <- sapply(1:dim(metadata)[1], function(x) strsplit(metadata$HMPbodysubsite[x],"_")[[1]][3]);
+
+fossa_indices <- which(fossa_crease_label=='fossa');
+crease_indices <- which(fossa_crease_label=='crease');
+
+fossa_data <- hands_data[fossa_indices,];
+crease_data <- hands_data[crease_indices,];
+
+metadata_fossa <- metadata[fossa_indices,];
+metadata_crease <- metadata[crease_indices,];
+```
+
+Number of fossa samples after filtering is `r dim(metadata_fossa)[1]` and number of crease samples after filtering is `r dim(metadata_crease)[1]` which os quite higher. 
+
+
+## Fossa Structure analysis
+
+Now we first define two grouping vectors, one for signifying the left hand or right hand sample and the other signifying the individual.
+
+First with respect to the left hand right hand combination.
+
+```{r leftright_fossa, echo=TRUE, eval=TRUE}
+
+left_right_label_fossa <- sapply(1:dim(metadata_fossa)[1], function(x) strsplit(metadata_fossa$HMPbodysubsite[x],"_")[[1]][1]);
+```
+
+Next with respect to the individual label.
+
+```{r indiv_fossa, echo=TRUE, eval=TRUE}
+indiv_label_fossa <- sapply(1:dim(metadata_fossa)[1], function(x) strsplit(metadata_fossa$Description[x],"_")[[1]][8]);
+```
+
+
+```{r fossa_structure}
+
+structure_fossa_metagenome <- function(counts_data,type_info,K)
+{
+  counts_data <- counts_data[which(!is.na(type_info)),];
+  type_info <- type_info[which(!is.na(type_info))];
+  Topic_Clus <- topics(counts_data,K,tol=0.0001);
+  write.table(Topic_Clus$omega,paste0('../internal_data/hands_data/hands_topics_omega_',K,'.txt'));
+  write.table(Topic_Clus$theta,paste0('../internal_data/hands_data/hands_topics_theta_',K,'.txt'));
+  docweights <- as.matrix(read.table(paste0('../internal_data/hands_data/hands_topics_omega_',K,'.txt')));
+  
+  type_ordered <- type_info[order(type_info)];
+  docweights_ordered <- docweights[order(type_info),];
+  barplot(t(docweights_ordered),col=2:(K+1),axisnames=F,space=0,border=NA,main=paste("No. of clusters=",K),las=1,ylim=c(0,1),cex.axis=0.3,cex.main=1.4);
+  labels = match(unique(type_ordered), type_ordered);
+  abline(v=labels-1)
+
+  labels_low=labels-1;
+  labels_up=c(labels_low[2:length(labels_low)],dim(docweights_ordered)[1]);
+  mid_point <- labels_low +0.5*(labels_up-labels_low);
+  axis(1,at=mid_point, unique(type_ordered),las=2,cex.axis=0.3);
+}
+
+```
+
+
+### Individual level variation
+
+We first apply Structure model on the fossa data and sort the columns in the Structure plot as per the individual labels. The results for two same individuals are expected to be similar.
+
+```{r indiv_lab_fossa_structure}
+sapply(2:4, function(k) structure_fossa_metagenome(fossa_data,indiv_label_fossa,k))
+```
+
+### Left/Right hand level variation
+
+Next we sort the columns as per the left hand/ right hand sample. We want to see if there is any distinctiveness among the clustering of the samples between the left and the right hands.
+
+```{r left_right_label_fossa}
+sapply(2:4, function(k) structure_fossa_metagenome(fossa_data,left_right_label_fossa,k))
+```
+
+## Crease Structure analysis
+
+Now we first define two grouping vectors, one for signifying the left hand or right hand sample and the other signifying the individual.
+
+First with respect to the left hand right hand combination.
+
+```{r leftright_crease, echo=TRUE, eval=TRUE}
+
+left_right_label_crease <- sapply(1:dim(metadata_crease)[1], function(x) strsplit(metadata_crease$HMPbodysubsite[x],"_")[[1]][1]);
+```
+
+Next with respect to the individual label.
+
+```{r indiv_crease, echo=TRUE, eval=TRUE}
+indiv_label_crease <- sapply(1:dim(metadata_crease)[1], function(x) strsplit(metadata_crease$Description[x],"_")[[1]][8]);
+```
+
+
+```{r crease_structure}
+
+structure_crease_metagenome <- function(counts_data,type_info,K)
+{
+  counts_data <- counts_data[which(!is.na(type_info)),];
+  type_info <- type_info[which(!is.na(type_info))];
+  Topic_Clus <- topics(counts_data,K,tol=0.0001);
+  write.table(Topic_Clus$omega,paste0('../internal_data/hands_data/hands_topics_omega_',K,'.txt'));
+  write.table(Topic_Clus$theta,paste0('../internal_data/hands_data/hands_topics_theta_',K,'.txt'));
+  docweights <- as.matrix(read.table(paste0('../internal_data/hands_data/hands_topics_omega_',K,'.txt')));
+  
+  type_ordered <- type_info[order(type_info)];
+  docweights_ordered <- docweights[order(type_info),];
+  barplot(t(docweights_ordered),col=2:(K+1),axisnames=F,space=0,border=NA,main=paste("No. of clusters=",K),las=1,ylim=c(0,1),cex.axis=0.3,cex.main=1.4);
+  labels = match(unique(type_ordered), type_ordered);
+  abline(v=labels-1)
+
+  labels_low=labels-1;
+  labels_up=c(labels_low[2:length(labels_low)],dim(docweights_ordered)[1]);
+  mid_point <- labels_low +0.5*(labels_up-labels_low);
+  axis(1,at=mid_point, unique(type_ordered),las=2,cex.axis=0.3);
+}
+
+```
+
+
+### Individual level variation
+
+We first apply Structure model on the fossa data and sort the columns in the Structure plot as per the individual labels. The results for two same individuals are expected to be similar.
+
+```{r indiv_lab_crease_structure}
+sapply(2:4, function(k) structure_fossa_metagenome(crease_data,indiv_label_crease,k))
+```
+
+### Left/Right hand level variation
+
+Next we sort the columns as per the left hand/ right hand sample. We want to see if there is any distinctiveness among the clustering of the samples between the left and the right hands.
+
+```{r left_right_label_crease}
+sapply(2:4, function(k) structure_fossa_metagenome(crease_data,left_right_label_crease,k))
+```
+
+## Understanding the variation due to L/R combination and individual variation
+
+First we find out significantly expressed genes for the L/R combination and the individual variation.
+
+```{r glmer_fossa, echo=FALSE, eval=FALSE, cache=FALSE}
+
+pval_lr_fossa <- array(0, dim(fossa_data)[2])
+pval_indiv_fossa <- array(0, dim(fossa_data)[2]);
+
+
+for(g in 1:dim(fossa_data)[2])
+{
+  res <- anova(glm(fossa_data[,g] ~as.factor(left_right_label_fossa)+as.factor(indiv_label_fossa), family="poisson"));
+  pval_lr_fossa[g] <- pchisq((res$`Resid. Dev`[1]-res$`Resid. Dev`[2]),res$Df[2],lower=FALSE)
+  pval_indiv_fossa[g] <- pchisq((res$`Resid. Dev`[2]-res$`Resid. Dev`[3]),res$Df[3],lower=FALSE)
+}
+
+
+write.table(pval_lr_fossa, '../internal_data/hands_data/pval_lr_fossa.txt');
+write.table(pval_indiv_fossa, '../internal_data/hands_data/pval_indiv_fossa.txt');
+
+
+```
+
+Next we perform the same analysis for crease.
+
+```{r glmer_crease, echo=FALSE, eval=FALSE, cache=FALSE}
+
+pval_lr_crease <- array(0, dim(crease_data)[2])
+pval_indiv_crease <- array(0, dim(crease_data)[2]);
+
+for(g in 1:dim(crease_data)[2])
+{
+  res <- anova(glm(crease_data[,g] ~as.factor(left_right_label_crease)+as.factor(indiv_label_crease), family="poisson"));
+  pval_lr_crease[g] <- pchisq((res$`Resid. Dev`[1]-res$`Resid. Dev`[2]),res$Df[2],lower=FALSE)
+  pval_indiv_crease[g] <- pchisq((res$`Resid. Dev`[2]-res$`Resid. Dev`[3]),res$Df[3],lower=FALSE)
+}
+
+write.table(pval_lr_crease, '../internal_data/hands_data/pval_lr_crease.txt');
+write.table(pval_indiv_crease, '../internal_data/hands_data/pval_indiv_crease.txt');
+
+```
+
+We save the p-values for the L/R combination and the individual variation. We compare the qvalues and lfdr across the genes for the fossa data
+
+```{r fossa_p_val, echo=TRUE, eval=TRUE}
+
+pval_lr_fossa <- as.vector(read.table("../internal_data/hands_data/pval_lr_fossa.txt"));
+pval_indiv_fossa <- as.vector(read.table("../internal_data/hands_data/pval_indiv_fossa.txt"));
+
+qval_lr_fossa <- qvalue(p=as.numeric(as.matrix(pval_lr_fossa)));
+
+plot(density(qval_lr_fossa$qvalues));
+plot(density(qval_lr_fossa$pvalues));
+plot(density(qval_lr_fossa$lfdr));
+
+
+qval_indiv_fossa <- qvalue(p=as.numeric(as.matrix(pval_indiv_fossa)));
+
+plot(density(qval_indiv_fossa$qvalues));
+plot(density(qval_indiv_fossa$pvalues));
+plot(density(qval_indiv_fossa$lfdr));
+
+```
+
+Next, we carry out the same analysis for the crease data
+
+```{r crease_p_val, echo=TRUE, eval=TRUE}
+
+pval_lr_crease <- as.vector(read.table("../internal_data/hands_data/pval_lr_crease.txt"));
+pval_indiv_crease <- as.vector(read.table("../internal_data/hands_data/pval_indiv_crease.txt"));
+
+qval_lr_crease <- qvalue(p=as.numeric(as.matrix(pval_lr_crease)));
+
+plot(density(qval_lr_crease$qvalues));
+plot(density(qval_lr_crease$pvalues));
+plot(density(qval_lr_crease$lfdr));
+
+
+qval_indiv_crease <- qvalue(p=as.numeric(as.matrix(pval_indiv_crease)));
+
+plot(density(qval_indiv_crease$qvalues));
+plot(density(qval_indiv_crease$pvalues));
+plot(density(qval_indiv_crease$lfdr));
+
+```
+
+
+Finally we do a PCA plot on just the fossa data and the crease data to see if there is any L/R effect or individual variation effect that is observable. We first consider the PCs for the fossa data 
+
+## PC analysis fossa data
+
+PC1 vs PC2 comparison for fossa data grouped by L/R combination.
+
+```{r pca_fossa_12_lr, echo=TRUE, eval=TRUE}
+fossa_data <-fossa_data[which(!is.na(indiv_label_fossa)),];
+indiv_label_fossa <- indiv_label_fossa[which(!is.na(indiv_label_fossa))];
+left_right_label_fossa <- left_right_label_fossa[which(!is.na(indiv_label_fossa))]
+pr <- prcomp(fossa_data %*% t(fossa_data));
+suppressWarnings(suppressMessages(iplot(pr$x[,1], pr$x[,2], as.numeric(as.factor(left_right_label_fossa)),left_right_label_fossa)))
+```
+
+PC2 vs PC3 comparison for fossa data grouped by L/R combination.
+
+```{r pca_fossa_23_lr, echo=TRUE, eval=TRUE}
+suppressWarnings(suppressMessages(iplot(pr$x[,2], pr$x[,3], as.numeric(as.factor(left_right_label_fossa)),left_right_label_fossa)))
+```
+
+PC1 vs PC2 comparison for fossa data grouped by individual.
+
+```{r pca_fossa_12_indiv, echo=TRUE, eval=TRUE}
+suppressWarnings(suppressMessages(iplot(pr$x[,1], pr$x[,2], as.numeric(as.factor(indiv_label_fossa)),indiv_label_fossa)))
+```
+
+PC2 vs PC3 comparison for fossa data grouped by individual.
+
+```{r pca_fossa_23_indiv, echo=TRUE, eval=TRUE}
+suppressWarnings(suppressMessages(iplot(pr$x[,2], pr$x[,3], as.numeric(as.factor(indiv_label_fossa)),indiv_label_fossa)))
+```
+
+
+## PC analysis crease data
+
+PC1 vs PC2 comparison for crease data grouped by L/R combination.
+
+```{r pca_crease_12_lr, echo=TRUE, eval=TRUE}
+crease_data <-crease_data[which(!is.na(indiv_label_crease)),];
+indiv_label_crease <- indiv_label_crease[which(!is.na(indiv_label_crease))];
+left_right_label_crease <- left_right_label_crease[which(!is.na(indiv_label_crease))]
+pr <- prcomp(crease_data %*% t(crease_data));
+suppressWarnings(suppressMessages(iplot(pr$x[,1], pr$x[,2], as.numeric(as.factor(left_right_label_crease)),left_right_label_crease)))
+```
+
+PC2 vs PC3 comparison for crease data grouped by L/R combination.
+
+```{r pca_crease_23_lr, echo=TRUE, eval=TRUE}
+suppressWarnings(suppressMessages(iplot(pr$x[,2], pr$x[,3], as.numeric(as.factor(left_right_label_crease)),left_right_label_crease)))
+```
+
+PC1 vs PC2 comparison for crease data grouped by individual.
+
+```{r pca_crease_12_indiv, echo=TRUE, eval=TRUE}
+suppressWarnings(suppressMessages(iplot(pr$x[,1], pr$x[,2], as.numeric(as.factor(indiv_label_crease)),indiv_label_crease)))
+```
+
+PC2 vs PC3 comparison for crease data grouped by individual.
+
+```{r pca_crease_23_indiv, echo=TRUE, eval=TRUE}
+suppressWarnings(suppressMessages(iplot(pr$x[,2], pr$x[,3], as.numeric(as.factor(indiv_label_crease)),indiv_label_crease)))
+```

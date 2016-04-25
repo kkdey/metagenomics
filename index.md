@@ -7,22 +7,22 @@ description: Application of admixture mixed model approach to metagenomic counts
 
 ### Exploration of HMP V3-5 data
 
-* [Admixture plot crease/fossa + whole data](project/hands_HMP/hands_data.html)
-* [Exploring only fossa/crease, PCA, q-value, individual Structure](project/hands_HMP/explore_fossa_crease.html)
-* [gene expression patterns fossa/crease](project/hands_HMP/fossa_crease_qtlcharts.html)
-* [PCA on data across sites and per site](project/hands_HMP/pca_across_body.html)
+* [Admixture plot crease/fossa + whole data](project/src/hmp_analysis.html)
+* [Exploring only fossa/crease, PCA, q-value, individual Structure](project/src/explore_fossa_crease.html)
+* [gene expression patterns fossa/crease](project/src/fossa_crease_qtlcharts.html)
+* [PCA on data across sites and per site](project/src/pca_across_body.html)
 * Clustering with identity contraint
-	* [Crease only](project/hands_HMP/relational-topic-fit.html)
+	* [Crease only](project/src/relational-topic-fit.html)
 	* Cluster across body sites
-		* [Structure plots by body site](project/hands_HMP/relational-topic-across-body.html)
-		* [Structure plots by individual](project/hands_HMP/relational-topic-across-body-individual.html)
+		* [Structure plots by body site](project/src/relational-topic-across-body.html)
+		* [Structure plots by individual](project/src/relational-topic-across-body-individual.html)
 
 ---
 
 ### Analysis of the Cell Paper Data
 
-* [Structure analysis for age, gender, Case/Control status](project/cell_paper/cell_paper_analysis.html)
-* [post Structure, Age constraining, Imp feature extraction analysis](project/cell_paper/post_structure_analysis.html)
+* [Structure analysis for age, gender, Case/Control status](project/src/cell_paper_analysis.html)
+* [post Structure, Age constraining, Imp feature extraction analysis](project/src/post_structure_analysis.html)
 
 ---
 

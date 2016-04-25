@@ -1,9 +1,8 @@
-project/rdas/mouse-metagenome.rda
 project/.DS_Store
 project/cell_paper
 data/
 .DS_Store
 project/hands_HMP/.DS_Store
 project/rdas/.DS_Store
-
+project/rdas/*
 .Rproj.user

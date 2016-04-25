@@ -1,0 +1,78 @@
+---
+title: "individual-L/R qtlcharts"
+author: "Kushal K Dey, Joyce HSiao, Joe Paulson"
+date: "September 2, 2015"
+output: html_document
+---
+
+Load the full data and extract the fossa and the crease data and the corresponding metadata.
+
+```{r load_data, echo=TRUE, eval=TRUE}
+suppressMessages(suppressWarnings(library(metagenomeSeq)))
+suppressMessages(suppressWarnings(library(maptpx)))
+suppressMessages(suppressWarnings(library(tsne)))
+suppressMessages(suppressWarnings(library(qtlcharts)))
+library(qvalue)
+library(qtlcharts)
+
+#setwd('/Users/kushal/Documents/metagenomics/src')
+load('../data/HMPvs35_nt100_MRexperiment.rdata')
+hmp <- filterData(hmp,present=10);
+#mat_temp <- t(MRcounts(hmp));
+mat = t(MRcounts(hmp,norm=TRUE,log=TRUE));
+
+mat_round <- round(mat);
+metadata <- pData(hmp);
+otu_data <- featureData(hmp)
+
+hands_data <- mat_round[which(metadata$HMPbodysupersite=="Skin"),];
+metadata <- metadata[which(metadata$HMPbodysupersite=="Skin"),];
+
+fossa_crease_label <- sapply(1:dim(metadata)[1], function(x) strsplit(metadata$HMPbodysubsite[x],"_")[[1]][3]);
+
+fossa_indices <- which(fossa_crease_label=='fossa');
+crease_indices <- which(fossa_crease_label=='crease');
+
+fossa_data <- hands_data[fossa_indices,];
+crease_data <- hands_data[crease_indices,];
+
+metadata_fossa <- metadata[fossa_indices,];
+metadata_crease <- metadata[crease_indices,];
+```
+
+
+Next we show the plot of the samples across the genes, indexed by whether the sample comes from Left fossa or Right fossa.
+
+```{r echo=TRUE, eval=TRUE}
+rownames(fossa_data)=metadata_fossa$HMPbodysubsite
+
+iplotCurves(fossa_data)
+```
+
+Next we do the plot over the OTUs. Since the OTUs are pretty big in number, we filter out only the first 100 OTUs and obtain the line plots of the normalized counts for the 100 OTUs across the `{r dim(fossa_data)[1]} fossa samples.
+
+```{r echo=TRUE, eval=TRUE}
+fossa_ordered <- fossa_data[order(metadata_fossa$HMPbodysubsite),];
+temp <- fossa_ordered[,1:100];
+colnames(temp)=1:100
+iplotCurves(t(temp))
+```
+
+
+Now we repeat the same procedure for the crease data. First, we consider the line/ curve diagram for the `{r dim(crease_data)[1]} crease samples across the OTUs.
+
+```{r echo=TRUE, eval=TRUE}
+rownames(crease_data)=metadata_crease$HMPbodysubsite
+
+iplotCurves(crease_data)
+```
+
+Next, we repeat the $100$ OTUs analysis across the crease samples as we did for fossa.
+
+```{r echo=TRUE, eval=TRUE}
+crease_ordered <- crease_data[order(metadata_crease$HMPbodysubsite),];
+table(metadata_crease$HMPbodysubsite[order(metadata_crease$HMPbodysubsite)])
+temp <- crease_ordered[,1:100];
+colnames(temp)=1:100
+iplotCurves(t(temp))
+```
