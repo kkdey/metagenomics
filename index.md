@@ -28,21 +28,21 @@ description: Application of admixture mixed model approach to metagenomic counts
 
 ### Diarrhea data
 
-* [Admixture clustering, center effect](project/diarrhea-2015-09-10.html)
-* [Age effects in diarrhea in structure, annotations](project/diarrhea_data_analysis_2015-10-07.html)
+* [Admixture clustering, center effect](project/src/diarrhea-2015-09-10.html)
+* [Age effects in diarrhea in structure, annotations](project/src/diarrhea_data_analysis_2015-10-07.html)
 
 ---
 
 ### Analysis of the Mouse Data
 
-* [Admixture clustering, OTU annotations](project/mouse_data_analysis.html)
+* [Admixture clustering, OTU annotations](project/src/mouse_data_analysis.html)
 
 
 ---
 
 ### Topic model for metagenomics data
 
-* [Topic model overview for metagenomics data](project/metagenome_Topics.pdf)
+* [Topic model overview for metagenomics data](project/utilities/metagenome_Topics.pdf)
 
 ---
 
